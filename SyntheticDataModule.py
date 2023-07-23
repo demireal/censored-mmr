@@ -71,21 +71,39 @@ class SyntheticDataModule:
     
     def get_covs(self):
         return self.cov_list.copy()
-
-
-    def get_oracle_outcome_model(self, interval, treatment, outcome):
-        if self.tte_params['model'] == 'coxph':
-            return self._get_oracle_survival_function(self, interval, treatment, outcome)
-        elif self.tte_params['model'] == 'AFT':
-            return self._get_oracle_mean_response_surface(self, interval, treatment, outcome)
-        
-
-    def _get_oracle_survival_function(self, interval, treatment, outcome):
-        # return the oracle survival function in INTERVAL for OUTCOME (C, Y) in TREATMENT arm (0,1) 
-        return
     
 
-    def _get_oracle_mean_response_surface(self, interval, treatment, outcome):
+    def calc_oracle_prop(self, arr, covariate='X1'):
+        X = pd.DataFrame(columns=self.cov_list, index=np.arange(len(arr)))
+        X[self.cov_list] = 0
+        X['X0'] = 1
+        X[covariate] = arr
+        if self.prop_fn == 'sigmoid':
+            return sigmoid_fn(X, self.prop_args['beta'])
+        else:
+            raise NotImplementedError(f'Propensity score method <{self.prop_fn}> is not implemented.')  
+        
+
+    def get_oracle_surv_curve(self, arr, cov_vals, outcome):
+        '''
+        Get the survival probabilities for a given set of covariates and an outcome.
+        @params:
+            arr: array of timesteps to get the survival probabilities over (numpy array)
+            cov_vals: covariate values (list)
+            outcome: e.g. 'Y0', 'C1' (string)
+        '''
+        if self.tte_params['model'] == 'coxph':
+            if self.tte_params['hazard'] == 'weibull':
+                return weibull_oracle_adj_surv(arr, np.array(cov_vals), self.tte_params['cox_args'][outcome])
+            
+            else:
+                raise NotImplementedError(f'Baseline hazard model <{self.tte_params["hazard"]}> is not implemented.')
+            
+        else:
+            raise NotImplementedError(f'Time-to-event model <{self.tte_params["model"]}> is not implemented.')
+    
+
+    def get_oracle_mean_response_surface(self, cov_arr, outcome):
         # return the oracle mean response surface signal in INTERVAL for OUTCOME (C, Y) in TREATMENT arm (0,1) 
         return
     
@@ -185,7 +203,6 @@ class SyntheticDataModule:
         self._plot_px(save_fig, cov_dim)
         self._plot_prop_score(save_fig)
         self._plot_outcomes(save_fig) 
-        #self._plot_oracle_surv_curves(save_fig) 
     
 
     def _plot_px(self, save_fig=True, cov_dim=1):
@@ -224,52 +241,6 @@ class SyntheticDataModule:
         plt.legend()
         if save_fig: plt.savefig(os.path.join(self.fig_save_dir, 'Y_C_vars.png'))
         else: plt.show()
-
-
-    def calc_oracle_prop(self, arr, covariate='X1'):
-        X = pd.DataFrame(columns=self.cov_list, index=np.arange(len(arr)))
-        X[self.cov_list] = 1
-        X[covariate] = arr
-        if self.prop_fn == 'sigmoid':
-            return sigmoid_fn(X, self.prop_args['beta'])
-        else:
-            raise NotImplementedError(f'Propensity score method <{self.prop_fn}> is not implemented.')  
-
-    
-    # def calc_oracle_surv_curves(self, arr, cov_vals):
-    #     tbs_Y0, tbs_Y1, tbs_C0, tbs_C1 = np.zeros(len(arr)), np.zeros(len(arr)), np.zeros(len(arr)), np.zeros(len(arr))
-    #     if self.tte_params['model'] == 'coxph':
-    #         if self.tte_params['hazard'] == 'weibull':
-    #             for i in range(len(arr)):
-    #                 tbs_Y0[i] = weibull_oracle_adj_surv(arr[i], np.array(cov_vals), self.tte_params['cox_args']['Y0'])
-    #                 tbs_Y1[i] = weibull_oracle_adj_surv(arr[i], np.array(cov_vals), self.tte_params['cox_args']['Y1'])
-    #                 tbs_C0[i] = weibull_oracle_adj_surv(arr[i], np.array(cov_vals), self.tte_params['cox_args']['C0'])
-    #                 tbs_C1[i] = weibull_oracle_adj_surv(arr[i], np.array(cov_vals), self.tte_params['cox_args']['C1'])
-
-    #             return tbs_Y0, tbs_Y1, tbs_C0, tbs_C1
-            
-    #         else:
-    #             raise NotImplementedError(f'Baseline hazard model <{self.tte_params["hazard"]}> is not implemented.')
-            
-    #     else:
-    #         raise NotImplementedError(f'Time-to-event model <{self.tte_params["model"]}> is not implemented.')
-
-
-    def calc_oracle_surv_curves(self, arr, cov_vals):
-        if self.tte_params['model'] == 'coxph':
-            if self.tte_params['hazard'] == 'weibull':
-                tbs_Y0 = weibull_oracle_adj_surv(arr, np.array(cov_vals), self.tte_params['cox_args']['Y0'])
-                tbs_Y1 = weibull_oracle_adj_surv(arr, np.array(cov_vals), self.tte_params['cox_args']['Y1'])
-                tbs_C0 = weibull_oracle_adj_surv(arr, np.array(cov_vals), self.tte_params['cox_args']['C0'])
-                tbs_C1 = weibull_oracle_adj_surv(arr, np.array(cov_vals), self.tte_params['cox_args']['C1'])
-
-                return tbs_Y0, tbs_Y1, tbs_C0, tbs_C1
-            
-            else:
-                raise NotImplementedError(f'Baseline hazard model <{self.tte_params["hazard"]}> is not implemented.')
-            
-        else:
-            raise NotImplementedError(f'Time-to-event model <{self.tte_params["model"]}> is not implemented.')
 
 
     def _save_csv(self,):
