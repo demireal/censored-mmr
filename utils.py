@@ -29,21 +29,3 @@ def weibull_oracle_adj_surv(T, x, args):
     '''
 
     return np.exp(-((args['lambda'] * T) ** args['p']) * np.exp(x @ args['beta']))
-
-
-def get_ate(df, psi, sig_name):
-    '''
-    estimate ATE from an instance-wise signal
-
-    @params:
-        df: pd.Dataframe
-        psi: function that operates on a single row and calculates an instance-wise signal for the CATE (callable)
-        sig_name: name of the signal for logging it in the dataframe (string)
-    '''
-    
-    for i in range(len(df)):
-        row = df.loc[i]
-        df.loc[i, sig_name] = psi(row)
-
-    return np.mean(df[sig_name]), df
-

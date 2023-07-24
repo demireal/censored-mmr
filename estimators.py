@@ -106,22 +106,23 @@ def ipcw_est(df, S):
         row = df.loc[i]
 
         if row['Delta'] == 1 and row['S'] == S:
-            part1 = int(row['A'] == 1) / (row['P(A=1|X,S)'])
-            part2 = int(row['A'] == 0) / (1 - row['P(A=1|X,S)'])
+            part1 = row['A'] / (row['P(A=1|X,S)'])
+            part0 = (1 - row['A']) / (1 - row['P(A=1|X,S)'])
 
-            psx = int(row['S'] == 1) * row['P(S=1|X)'] + int(row['S'] == 0) * (1 - row['P(S=1|X)'])
+            psx = row['S'] * row['P(S=1|X)'] + (1 - row['S']) * (1 - row['P(S=1|X)'])
             denom = psx * row['G_C(T|X,S,A)']
 
-            ipcw = row['T'] * (part1 - part2) / denom
+            ipcw = row['T'] * (part1 - part0) / denom
 
         else:
             ipcw = 0
 
-        df.loc[i, f'ipcw_est_S{S}'] = ipcw
+        df.loc[i, f'S{S}_ipcw_est_CATE'] = ipcw
+        df.loc[i, f'S{S}_ipcw_est_Y1'] = row['A'] * ipcw
+        df.loc[i, f'S{S}_ipcw_est_Y0'] = - (1 - row['A']) * ipcw
 
 
-
-def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='ipcw_est_S0', signal1='ipcw_est_S1'):
+def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE'):
     n = len(df)
     Kxx = kernel(df[cov_list])
     np.fill_diagonal(Kxx, 0)

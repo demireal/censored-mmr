@@ -50,19 +50,31 @@ class SyntheticDataModule:
 
     
     def summary(self, cov_dim=1, plot=True, save_fig=True):
-        true_ate = self.df['Y1'].mean() - self.df['Y0'].mean()
-        naive_ate = self.df.query('A == 1')['Y1'].mean() - self.df.query('A == 0')['Y0'].mean()
-        impute_ate = self.df_observed.query('A == 1')['T'].mean() - self.df_observed.query('A == 0')['T'].mean()
-        drop_ate = self.df_observed.query('Delta == 1 & A == 1')['T'].mean() \
-                     - self.df_observed.query('Delta == 1 & A == 0')['T'].mean()
-        
-        ipw_ate_oracle, _ = get_ate(self.df.copy(), self._ipw_psi_oracle, 'ipw_oracle')
-        
-        print(f'Study index S: {self.S}\nSample size n: {self.n}\nCovariate dimensionality: {self.d}\n***')
-        print(f'True ATE: {true_ate:.3f}\nNo-censoring naive ATE estimate: {naive_ate:.3f}\nCensoring-imputed ATE estimate: {impute_ate:.3f}\nCensoring-dropped ATE estimate: {drop_ate:.3f}\n***')
-        print(f'Oracle IPW-estimated ATE: {ipw_ate_oracle:.3f}\n')
+        summary_df = pd.DataFrame(index=np.arange(1))
+        summary_df['S'] = self.S
+        summary_df['d'] = self.d
+        summary_df['n'] = self.n
+
+        self._ipcw_oracle()
+
+        summary_df['True mean Y0'] = self.df['Y0'].mean()
+        summary_df['Impute mean Y0'] = self.df_observed.query('A == 0')['T'].mean()
+        summary_df['Drop mean Y0'] = self.df_observed.query('Delta == 1 & A == 0')['T'].mean()
+        summary_df['Oracle-IPCW mean Y0'] = self.df['ipcw_oracle_Y0'].mean()
+
+        summary_df['True mean Y1'] = self.df['Y1'].mean()
+        summary_df['Impute mean Y1'] = self.df_observed.query('A == 1')['T'].mean()
+        summary_df['Drop mean Y1'] = self.df_observed.query('Delta == 1 & A == 1')['T'].mean()
+        summary_df['Oracle-IPCW mean Y1'] = self.df['ipcw_oracle_Y1'].mean()
+
+        summary_df['True ATE'] = summary_df['True mean Y1'] - summary_df['True mean Y0']
+        summary_df['Impute ATE'] = summary_df['Impute mean Y1'] - summary_df['Impute mean Y0']
+        summary_df['Drop ATE'] = summary_df['Drop mean Y1'] - summary_df['Drop mean Y0']
+        summary_df['Oracle-IPCW ATE'] = self.df['ipcw_oracle_CATE'].mean()
 
         if plot: self._plot(save_fig, cov_dim)
+
+        return summary_df
 
     
     def get_df(self):
@@ -180,19 +192,24 @@ class SyntheticDataModule:
             raise NotImplementedError(f'Time-to-event model <{self.tte_params["model"]}> is not implemented.')
 
 
-    def _ipw_psi_oracle(self, row):
+    def _ipcw_oracle(self):
         '''
         Oracle IPW-signal calculated for a single instance, using the TRUE values of the nuisance functions.
         '''
-        if row['Delta'] == 1:
-            part1 = int(row['A']==1) / (row['prop_score'])
-            part2 = int(row['A']==0) / (1-row['prop_score'])
+        for i in range(len(self.df)):
+            row = self.df.loc[i]
 
-            ipw_psi = row['T'] * (part1 - part2) / row['sc']
-        else:
-            ipw_psi = 0
+            if row['Delta'] == 1:
+                part1 = row['A'] / row['prop_score']
+                part0 = (1 - row['A']) / (1 - row['prop_score'])
+                ipcw = row['T'] * (part1 - part0) / row['sc']
 
-        return ipw_psi
+            else:
+                ipcw = 0
+
+            self.df.loc[i, 'ipcw_oracle_CATE'] = ipcw
+            self.df.loc[i, 'ipcw_oracle_Y1'] = row['A'] * ipcw
+            self.df.loc[i, 'ipcw_oracle_Y0'] = - (1 - row['A']) * ipcw
 
 
     def _plot(self, save_fig=True, cov_dim=1):
