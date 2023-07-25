@@ -95,7 +95,7 @@ def gc_est(df, cov_list, tte_model):
 def ipcw_est(df, S):
     '''
     Calculate the instance-wise inverse propensity weighted signal for CATE, using the *combined* dataframe.
-    Record the IPW-signals in the dataframe.
+    Record the IPCW-signals in the dataframe.
 
     @params:
         df: Data (pd.DataFrame)
@@ -120,6 +120,35 @@ def ipcw_est(df, S):
         df.loc[i, f'S{S}_ipcw_est_CATE'] = ipcw
         df.loc[i, f'S{S}_ipcw_est_Y1'] = row['A'] * ipcw
         df.loc[i, f'S{S}_ipcw_est_Y0'] = - (1 - row['A']) * ipcw
+
+
+def ipw_impute_est(df, S):
+    '''
+    Calculate the instance-wise inverse propensity weighted signal for CATE, using the *combined* dataframe.
+    Record the IPW-signals in the dataframe.
+    Note that we impute the censored values.
+
+    @params:
+        df: Data (pd.DataFrame)
+        S: study index (integer)
+    '''
+
+    for i in range(len(df)):
+        row = df.loc[i]
+
+        if row['S'] == S:
+            part1 = row['A'] / (row['P(A=1|X,S)'])
+            part0 = (1 - row['A']) / (1 - row['P(A=1|X,S)'])
+
+            psx = row['S'] * row['P(S=1|X)'] + (1 - row['S']) * (1 - row['P(S=1|X)'])
+            ipw = row['T'] * (part1 - part0) / psx
+
+        else:
+            ipw = 0
+
+        df.loc[i, f'S{S}_impute_ipw_est_CATE'] = ipw
+        df.loc[i, f'S{S}_impute_ipw_est_Y1'] = row['A'] * ipw
+        df.loc[i, f'S{S}_impute_ipw_est_Y0'] = - (1 - row['A']) * ipw
 
 
 def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE'):
