@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from lifelines import CoxPHFitter
+from SyntheticDataModule import *
 
 from sklearn.metrics.pairwise import rbf_kernel, laplacian_kernel
 
@@ -122,7 +123,7 @@ def ipcw_est(df, S):
         df.loc[i, f'S{S}_ipcw_est_Y0'] = - (1 - row['A']) * ipcw
 
 
-def ipw_impute_est(df, S):
+def ipw_est(df, S, baseline):
     '''
     Calculate the instance-wise inverse propensity weighted signal for CATE, using the *combined* dataframe.
     Record the IPW-signals in the dataframe.
@@ -146,10 +147,10 @@ def ipw_impute_est(df, S):
         else:
             ipw = 0
 
-        df.loc[i, f'S{S}_impute_ipw_est_CATE'] = ipw
-        df.loc[i, f'S{S}_impute_ipw_est_Y1'] = row['A'] * ipw
-        df.loc[i, f'S{S}_impute_ipw_est_Y0'] = - (1 - row['A']) * ipw
-
+        df.loc[i, f'S{S}_{baseline}_ipw_est_CATE'] = ipw
+        df.loc[i, f'S{S}_{baseline}_ipw_est_Y1'] = row['A'] * ipw
+        df.loc[i, f'S{S}_{baseline}_ipw_est_Y0'] = - (1 - row['A']) * ipw
+        
 
 def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE'):
     n = len(df)
@@ -170,3 +171,58 @@ def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE',
     # return 0 for accepting and 1 for rejecting the null H0.
     pval = (np.sum(mmr_stat < h0_sample) + 1) / (len(h0_sample) + 1)
     return int(pval < 0.05), pval
+
+
+def single_mmr_run(test_signals, save_df, d, rct_size, obs_size, B, kernel,
+                   px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r,
+                   px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o):
+    
+    RCTData = SyntheticDataModule(save_df, d, rct_size, 0, px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r)
+    OBSData = SyntheticDataModule(save_df, d, obs_size, 1, px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o)
+
+    df_rct_oracle, df_rct = RCTData.get_df()
+    df_obs_oracle, df_obs = OBSData.get_df()
+
+    df_combined = pd.concat([df_rct, df_obs], axis=0, ignore_index=True)  # merge the dataframes into one
+    df_comb_drop = df_combined.query('Delta == 1').reset_index(drop=True).copy()  # drop the censored observations
+    
+    cov_list = RCTData.get_covs()
+
+    # Estimate the nuisance parameters for the combined dataframe
+
+    df_combined['P(S=1|X)'] = prop_score_est(df_combined.copy(), 'S', cov_list, 'logistic')
+
+    df_combined.loc[df_combined.S==0, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==0').copy(), 'A', cov_list, 'logistic')
+    df_combined.loc[df_combined.S==1, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==1').copy(), 'A', cov_list, 'logistic')
+
+    gc_est(df_combined, cov_list, tte_model='coxph')
+
+    ipcw_est(df_combined, S=0)
+    ipcw_est(df_combined, S=1)
+    ipw_est(df_combined, S=0, baseline='impute')  # calling on the dataframe where censored observations are NOT dropped
+    ipw_est(df_combined, S=1, baseline='impute')  # calling on the dataframe where censored observations are NOT dropped
+    
+    
+    # Estimate the nuisance parameters for the combined dataframe with censored observations dropped
+    
+    df_comb_drop['P(S=1|X)'] = prop_score_est(df_comb_drop.copy(), 'S', cov_list, 'logistic')
+
+    df_comb_drop.loc[df_comb_drop.S==0, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==0').copy(), 'A', cov_list, 'logistic')
+    df_comb_drop.loc[df_comb_drop.S==1, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==1').copy(), 'A', cov_list, 'logistic')
+
+    ipw_est(df_comb_drop, S=0, baseline='drop')  # calling on the dataframe where censored observations are dropped
+    ipw_est(df_comb_drop, S=1, baseline='drop')  # calling on the dataframe where censored observations are dropped
+    
+    mmr_stats = np.zeros((len(test_signals), 2))  # store results and p-val for each mmr test
+
+    for kind, key in enumerate(test_signals):
+        
+        if 'Drop' in key:
+            df_mmr = df_comb_drop.copy()
+        else:
+            df_mmr = df_combined.copy()
+            
+        signal0, signal1 = test_signals[key][0], test_signals[key][1]
+        mmr_stats[kind, 0], mmr_stats[kind, 1] = mmr_test(df_mmr, cov_list, B, kernel, signal0, signal1)
+        
+    return mmr_stats
