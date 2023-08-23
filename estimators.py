@@ -173,17 +173,17 @@ def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE',
     return int(pval < 0.05), pval
 
 
-def single_mmr_run(test_signals, save_df, d, rct_size, obs_size, B, kernel,
+def single_mmr_run(test_signals, save_df, d, rct_size, os_size, B, kernel,
                    px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r,
                    px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o):
     
     RCTData = SyntheticDataModule(save_df, d, rct_size, 0, px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r)
-    OBSData = SyntheticDataModule(save_df, d, obs_size, 1, px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o)
+    OSData = SyntheticDataModule(save_df, d, os_size, 1, px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o)
 
     df_rct_oracle, df_rct = RCTData.get_df()
-    df_obs_oracle, df_obs = OBSData.get_df()
+    df_os_oracle, df_os = OSData.get_df()
 
-    df_combined = pd.concat([df_rct, df_obs], axis=0, ignore_index=True)  # merge the dataframes into one
+    df_combined = pd.concat([df_rct, df_os], axis=0, ignore_index=True)  # merge the dataframes into one
     df_comb_drop = df_combined.query('Delta == 1').reset_index(drop=True).copy()  # drop the censored observations
     
     cov_list = RCTData.get_covs()

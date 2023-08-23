@@ -42,11 +42,11 @@ mmr_results_df = pd.DataFrame(columns=['Test'] + m_cols, index=range(len(jD['tes
 
 for mind, m in enumerate(list(np.arange(1, jD['maxm'] + 1))):
     start_time = time()
-    obs_size = jD['rct_size'] * m 
+    os_size = jD['rct_size'] * m 
     
     local_mmr_results = Parallel(n_jobs=int(cpu_count()))(
                             delayed(single_mmr_run)(
-       jD['test_signals'], jD['save_df'], jD['cov_dim'], jD['rct_size'], obs_size, jD['B'], laplacian_kernel,
+       jD['test_signals'], jD['save_df'], jD['cov_dim'], jD['rct_size'], os_size, jD['B'], laplacian_kernel,
        jD['RCT']['px_dist'], jD['RCT']['px_args'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'],
        jD['OS']['px_dist'], jD['OS']['px_args'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'],
        )
