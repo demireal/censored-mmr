@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import rbf_kernel, laplacian_kernel
 
+import json
 import os
 from joblib import Parallel, delayed
 from multiprocessing import cpu_count
@@ -20,87 +21,40 @@ from SyntheticDataModule import *
 from estimators import *
 from utils import *
 
+
 parser = argparse.ArgumentParser()
-
-parser.add_argument('--save_df', default=False, help='Whether to save the dataframes generated during experiments')
-parser.add_argument('--res_subdir', default='', help='e.g. cic_same-po_nuc')
-
-parser.add_argument('--dim', type=int, default=1, help='Covariate dimensionality')
-parser.add_argument('--rct_size', type=int, default=1000, help='Trial cohort size')
-parser.add_argument('--maxm', type=int, default=5, help='obs_size = rct_size * m for m in [1,2, ..., maxm]')
-parser.add_argument('--B', type=int, default=100, help='Num. samples to model the null H0')
-parser.add_argument('--num_exp', type=int, default=40, help='Number of repetitions for each experimental setup')
-
+parser.add_argument('--config_json', required=True, help='Path to the JSON file containing experiment configuration')
 args = parser.parse_args()
 
-print(f'Cov. dim.: {args.dim}')
-print(f'RCT size: {args.rct_size}')
-print(f'Max. m: {args.maxm}')
-print(f'B: {args.B}')
-print(f'Num exp: {args.num_exp}')
+with open(args.config_json, 'r') as file:
+    try:
+        jD = json.load(file)
+    except json.JSONDecodeError:
+        print("Invalid JSON format in the input file.")
 
+assert jD['cov_dim'] == len(jD['RCT']['px_args']['mean']), "Check covariate dimensions."
 
-# RCT data generating model parameters
+mmr_results = np.zeros((jD['maxm'], len(jD['test_signals']), jD['num_exp']))
+mmr_pvals = np.zeros((jD['maxm'], len(jD['test_signals']), jD['num_exp']))
 
-px_dist_r, px_args_r = 'Gaussian', {'mean': [0], 'cov': [[1]]}
-prop_fn_r, prop_args_r = 'sigmoid', {'beta': [0, 1e-4]}
-tte_params_r = {'model': 'coxph',
-                'hazard': 'weibull',
-                'cox_args': {'Y0': {'beta': [0,0.75], 'lambda': 0.5, 'p': 5},
-                            'Y1': {'beta': [0,0.25], 'lambda': 0.15, 'p': 5},
-                            'C0': {'beta': [0,0], 'lambda': 0.2, 'p': 4},
-                            'C1': {'beta': [0,0], 'lambda': 0.1, 'p': 4},},
-                }
+m_cols = ['m = ' + str(m + 1) for m in range(jD['maxm'])]
+mmr_results_df = pd.DataFrame(columns=['Test'] + m_cols, index=range(len(jD['test_signals'])))
 
-# OBS data generating model parameters
-
-px_dist_o, px_args_o = 'Gaussian', {'mean': [-0.5], 'cov': [[1.5]]}
-prop_fn_o, prop_args_o = 'sigmoid', {'beta': [0.8, 0.25]}
-tte_params_o = {'model': 'coxph',
-                'hazard': 'weibull',
-                'cox_args': {'Y0': {'beta': [0,0.75], 'lambda': 0.5, 'p': 5},
-                            'Y1': {'beta': [0,0.25], 'lambda': 0.15, 'p': 5},
-                            'C0': {'beta': [0,0], 'lambda': 0.2, 'p': 4},
-                            'C1': {'beta': [0,0], 'lambda': 0.2, 'p': 1.5},},
-                }
-
-assert args.dim == len(px_args_o['mean']), "Check covariate dimensions."
-
-# Signals to test for equivalence in the MMR test
-
-test_signals = {'IPCW-Contrast': ['S0_ipcw_est_CATE', 'S1_ipcw_est_CATE'],
-                'IPCW-Y1': ['S0_ipcw_est_Y1', 'S1_ipcw_est_Y1'],
-                'IPCW-Y0': ['S0_ipcw_est_Y0', 'S1_ipcw_est_Y0'],
-                'Impute-IPW-Contrast': ['S0_impute_ipw_est_CATE', 'S1_impute_ipw_est_CATE'],
-                'Impute-IPW-Y1': ['S0_impute_ipw_est_Y1', 'S1_impute_ipw_est_Y1'],
-                'Impute-IPW-Y0': ['S0_impute_ipw_est_Y0', 'S1_impute_ipw_est_Y0'],
-                'Drop-IPW-Contrast': ['S0_drop_ipw_est_CATE', 'S1_drop_ipw_est_CATE'],
-                'Drop-IPW-Y1': ['S0_drop_ipw_est_Y1', 'S1_drop_ipw_est_Y1'],
-                'Drop-IPW-Y0': ['S0_drop_ipw_est_Y0', 'S1_drop_ipw_est_Y0'],
-               }
-
-
-mmr_results = np.zeros((args.maxm, len(test_signals), args.num_exp))
-mmr_pvals = np.zeros((args.maxm, len(test_signals), args.num_exp))
-
-m_cols = ['m = ' + str(m+1) for m in range(args.maxm)]
-mmr_results_df = pd.DataFrame(columns=['Test'] + m_cols, index=range(len(test_signals)))
-
-
-for mind, m in enumerate(list(np.arange(1, args.maxm+1))):
+for mind, m in enumerate(list(np.arange(1, jD['maxm'] + 1))):
     start_time = time()
-    obs_size = args.rct_size * m 
+    obs_size = jD['rct_size'] * m 
     
     local_mmr_results = Parallel(n_jobs=int(cpu_count()))(
-                    delayed(single_mmr_run)(test_signals, args.save_df,
-                                       args.dim, args.rct_size, obs_size, args.B, laplacian_kernel,
-                                       px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r,
-                                       px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o)
-                    for nind in range(args.num_exp)
-                )
+                            delayed(single_mmr_run)(
+       jD['test_signals'], jD['save_df'], jD['cov_dim'], jD['rct_size'], obs_size, jD['B'], laplacian_kernel,
+       jD['RCT']['px_dist'], jD['RCT']['px_args'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'],
+       jD['OS']['px_dist'], jD['OS']['px_args'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'],
+       )
+        for nind in range(jD['num_exp'])
+    )
     
-    for nind in range(args.num_exp):
-        for kind in range(len(test_signals)):
+    for nind in range(jD['num_exp']):
+        for kind in range(len(jD['test_signals'])):
             mmr_results[mind, kind, nind] = local_mmr_results[nind][kind][0]
             mmr_pvals[mind, kind, nind] = local_mmr_results[nind][kind][1]
             
@@ -108,7 +62,7 @@ for mind, m in enumerate(list(np.arange(1, args.maxm+1))):
     print(f'm = {m}, time passed = {exec_time:.1f}')
 
 
-for kind, key in enumerate(test_signals):
+for kind, key in enumerate(jD['test_signals']):
     for mind, m_col in enumerate(m_cols):
         mmr_results_df.loc[kind, 'Test'] = key
         mmr_results_df.loc[kind, m_col] = mmr_results[mind, kind, :].mean()
@@ -116,28 +70,11 @@ for kind, key in enumerate(test_signals):
 
 # Saving the results
 
-script_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f'/results/{args.res_subdir}')
-save_findir = script_dir / f'cov_dim_{args.dim}'
-save_findir.mkdir(parents=True, exist_ok=True)
+save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f'/results/{jD["res_subdir"]}/cov_dim_{jD["cov_dim"]}')
+save_dir.mkdir(parents=True, exist_ok=True)
         
-mmr_results_df.to_csv(os.path.join(script_dir, f'cov_dim_{args.dim}', 'res_summary.csv'), index=False)    
-np.save(os.path.join(script_dir, f'cov_dim_{args.dim}', 'pvals.npy'), mmr_pvals)     
-readme_summary(os.path.join(script_dir, f'cov_dim_{args.dim}', 'README.txt'), args, 
-              px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r,
-              px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o,)
+mmr_results_df.to_csv(os.path.join(save_dir, 'res_summary.csv'), index=False)    
+np.save(os.path.join(save_dir, 'pvals.npy'), mmr_pvals) 
 
-
-
-        
-        
-
-
-
-
-
-
-
-
-
-
-
+with open(os.path.join(save_dir, 'config.json'), 'w') as output_file:
+    json.dump(jD, output_file, indent=4)  # The `indent` parameter adds pretty-printing with indentation
