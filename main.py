@@ -25,14 +25,7 @@ from utils import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_json', required=True, help='Path to the JSON file containing experiment configuration')
 args = parser.parse_args()
-
-with open(args.config_json, 'r') as file:
-    try:
-        jD = json.load(file)
-    except json.JSONDecodeError:
-        print("Invalid JSON format in the input file.")
-
-assert jD['cov_dim'] == len(jD['RCT']['px_args']['mean']), "Check covariate dimensions."
+jD = read_json(args.config_json)
 
 mmr_results = np.zeros((jD['maxm'], len(jD['test_signals']), jD['num_exp']))
 mmr_pvals = np.zeros((jD['maxm'], len(jD['test_signals']), jD['num_exp']))

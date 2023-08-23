@@ -6,7 +6,7 @@
     "rct_size": 1000,
     "maxm": 5,
     "B": 100,
-    "num_exp": 10,
+    "num_exp": 40,
     
     "RCT":  
 
@@ -49,14 +49,8 @@
 
         {
         "IPCW-Contrast": ["S0_ipcw_est_CATE", "S1_ipcw_est_CATE"],
-        "IPCW-Y1": ["S0_ipcw_est_Y1", "S1_ipcw_est_Y1"],
-        "IPCW-Y0": ["S0_ipcw_est_Y0", "S1_ipcw_est_Y0"],
         "Impute-IPW-Contrast": ["S0_impute_ipw_est_CATE", "S1_impute_ipw_est_CATE"],
-        "Impute-IPW-Y1": ["S0_impute_ipw_est_Y1", "S1_impute_ipw_est_Y1"],
-        "Impute-IPW-Y0": ["S0_impute_ipw_est_Y0", "S1_impute_ipw_est_Y0"],
-        "Drop-IPW-Contrast": ["S0_drop_ipw_est_CATE", "S1_drop_ipw_est_CATE"],
-        "Drop-IPW-Y1": ["S0_drop_ipw_est_Y1", "S1_drop_ipw_est_Y1"],
-        "Drop-IPW-Y0": ["S0_drop_ipw_est_Y0", "S1_drop_ipw_est_Y0"]
+        "Drop-IPW-Contrast": ["S0_drop_ipw_est_CATE", "S1_drop_ipw_est_CATE"]
         }
 
 }

@@ -4,7 +4,7 @@
     "res_subdir": "cic_same-po_nuc",
     "cov_dim": 1,
     "rct_size": 1000,
-    "maxm": 5,
+    "maxm": 2,
     "B": 100,
     "num_exp": 10,
     
