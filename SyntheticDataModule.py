@@ -251,7 +251,7 @@ class SyntheticDataModule:
         sns.histplot(data=self.df, x='Y1', kde=True, bins='auto', alpha=0.5, label=f'Y(1) | S={self.S}')
         sns.histplot(data=self.df, x='C0', kde=True, bins='auto', alpha=0.5, label=f'C(0) | S={self.S}')
         sns.histplot(data=self.df, x='C1', kde=True, bins='auto', alpha=0.5, label=f'C(1) | S={self.S}')
-        plt.xlim(0, 10)
+        plt.xlim(0, 20)
         plt.title('Potential outcome and censoring variables marginalized over X')
         plt.xlabel('Time')
         plt.ylabel('Density')
