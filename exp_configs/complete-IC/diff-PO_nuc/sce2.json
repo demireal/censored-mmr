@@ -1,7 +1,7 @@
 {
     
     "save_df": false,  
-    "res_subdir": "complete-IC/same-PO_nuc",
+    "res_subdir": "complete-IC/diff-PO_nuc",
     "cov_dim": 2,
     "cov_list": ["X0", "X1", "X2"],
     "crop_prop": true,
