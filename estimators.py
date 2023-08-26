@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from time import sleep, time
 from lifelines import CoxPHFitter
 from SyntheticDataModule import *
 
