@@ -4,6 +4,8 @@ import statsmodels.api as sm
 from time import sleep, time
 from lifelines import CoxPHFitter
 from SyntheticDataModule import *
+from scipy.integrate import quad
+from scipy.interpolate import interp1d
 
 from sklearn.metrics.pairwise import rbf_kernel, laplacian_kernel
 
@@ -61,15 +63,17 @@ def coxph_base_surv(df, cov_list, flip=False):
     
     est_base_surv = cph.baseline_survival_
     t_event = np.array(est_base_surv.index)
-
-    return t_event, np.array(est_base_surv).reshape(-1), np.array(list(cph.params_).insert(0,0))  
     
+    cph_params = list(cph.params_)
+    cph_params.insert(0,0)
 
-def gc_est(df, cov_list, tte_model):
+    return t_event, np.array(est_base_surv).reshape(-1), np.array(cph_params)  
+
+    
+def est_surv(df, cov_list, tte_model):
     '''
-    Calculate the adjusted survival curve for the censoring variable ("G_C(T | X,S,A)") separately for S=0,1 and A=0,1 (4 models total)
-    Record the results in the dataframe.
-
+    Estimate the survival function for the censoring time C and the time-to-event outcome Y
+    
     @params:
         df: Data (pd.DataFrame)
         cov_list: list of covariates except from S and A (string)
@@ -77,34 +81,107 @@ def gc_est(df, cov_list, tte_model):
     '''
 
     cbse = {}  # censoring-baseline-survival-estimate (cbse) 
+    ybse = {}  # TimeToEvent-baseline-survival-estimate (ybse, TTE is y)
         
-    for sind in range(2):
-        for aind in range(2):
+    for s in range(2):
+        for a in range(2):
             
-            if len(df.query(f'S=={sind} & A=={aind} & Delta==0')) == 0:
-                cbse[f't_S{sind}_C{aind}'], cbse[f'St_S{sind}_C{aind}'] = [-1], [1]
+            # Estimate the survival function for the censoring variable C
+            if len(df.query(f'S=={s} & A=={a} & Delta==0')) == 0:  # deal with "lifelines" lib errors 
+                cbse[f't_S{s}_A{a}'], cbse[f'St_S{s}_A{a}'] = [-1], [1]
                 
             else:
                 if tte_model == 'coxph':
-                    cbse[f't_S{sind}_C{aind}'], cbse[f'St_S{sind}_C{aind}'], _ = \
-                    coxph_base_surv(df.query(f'S=={sind} & A=={aind}').copy(), cov_list[1:], flip=True)  
+                    cbse[f't_S{s}_A{a}'], cbse[f'St_S{s}_A{a}'], cbse[f'beta_S{s}_A{a}'] = \
+                    coxph_base_surv(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=True) # fit for C  
                     
                 else:
                     raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
-            
-    for i in range(len(df)):
-        t_str = 't_S{}_C{}'.format(df.loc[i, 'S'], df.loc[i, 'A'])
-        st_str = 'St_S{}_C{}'.format(df.loc[i, 'S'], df.loc[i, 'A'])
-        obs_val = df.loc[i, 'T']
+                    
+            # Estimate the survival function for the time-to-event variable Y
+            if len(df.query(f'S=={s} & A=={a} & Delta==1')) == 0:
+                ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}'] = [-1], [1]
+                
+            else:
+                if tte_model == 'coxph':
+                    ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}'], ybse[f'beta_S{s}_A{a}'] = \
+                    coxph_base_surv(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=False) # fit for Y
+                    
+                else:
+                    raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
+                    
+    return cbse, ybse 
 
-        if list(cbse[t_str]) == [-1]:
-            df.loc[i, 'G_C(T|X,S,A)'] = 1
-        else:
-            df.loc[i, 'G_C(T|X,S,A)'] = cbse[st_str][np.argmin(np.abs(obs_val-cbse[t_str]))]
-            
-    return cbse
+
+def eval_surv(s, a, x, T, surv_dict):
+    '''
+    Evaluate the value of a survival function specificied by "surv_dict, s, a" for "T" with covariates "x"
+    '''
+    t_arr, st_arr = surv_dict[f't_S{s}_A{a}'], surv_dict[f'St_S{s}_A{a}']
+    
+    if list(t_arr) == [-1]:
+        res = 1
+    else:
+        beta_arr = surv_dict[f'beta_S{s}_A{a}']
+        base_val = st_arr[np.argmin(np.abs(T - t_arr))]
+        cov_exp = beta_arr @ x
+        res = base_val ** (np.exp(cov_exp))
+    
+    return res   
 
 
+def eval_Qfunc(s, a, x, T, ybse):  
+    t_arr, st_arr = ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}']
+
+    denum = eval_surv(s, a, x, T, ybse)
+    func = interp1d(t_arr, st_arr, kind='linear', fill_value='extrapolate')
+    num, _ = quad(func, T, t_arr.max(), limit=100)
+    res = num / denum 
+    
+    return res 
+
+
+def eval_int_term(s, a, x, T, cbse, ybse):
+    # get upper bound index for \tilde{Y} (we use T for \tilde{Y} interchangeably in code)
+    ub_ind = np.where(t_arr < T)[0][-1] + 1
+    t_arr, st_arr = cbse[f't_S{s}_A{a}'][:ub_ind], cbse[f'St_S{s}_A{a}'][:ub_ind]
+    
+    deriv = np.gradient(1 - st_arr)
+    num = np.array([eval_Qfunc(s, a, x, c, ybse) for c in t_arr])
+    denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
+    
+    res = deriv * num / denum
+    
+    return res
+
+
+def eval_Ystar(s, a, x, delta, T, cbse, ybse):
+    
+    if delta == 1:
+        ft_num = T
+    else
+        ft_num = eval_Qfunc(s, a, x, T, ybse)
+
+    first_term = ft_num / eval_surv(s, a, x, T, cbse) 
+    res = first_term - eval_int_term(s, a, x, T, cbse, ybse)
+    
+    return res
+
+
+def eval_mu(s, a, x, ybse):
+    t_arr, st_arr = ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}']
+
+    func = interp1d(t_arr, st_arr, kind='linear', fill_value='extrapolate')
+    res, _ = quad(func, T, t_arr.max(), limit=100)
+    
+    return res     
+
+def calc_surv_fns(df, cov_list, cbse, ybse):
+    '''
+    Fill the values for G_bar(T|X,S,A) that are used in both the IPCW and the DR signal.
+    '''
+    df['G_bar(T|X,S,A)'] = df.apply(lambda r: eval_surv(int(r['S']), int(r['A']), r[cov_list], r['T'], cbse), axis=1)
+    
 
 def ipcw_est(df, S):
     '''
@@ -124,7 +201,7 @@ def ipcw_est(df, S):
             part0 = (1 - row['A']) / (1 - row['P(A=1|X,S)'])
 
             psx = row['S'] * row['P(S=1|X)'] + (1 - row['S']) * (1 - row['P(S=1|X)'])
-            denom = psx * row['G_C(T|X,S,A)']
+            denom = psx * row['G_bar(T|X,S,A)']
 
             ipcw = row['T'] * (part1 - part0) / denom
 
@@ -206,8 +283,8 @@ def single_mmr_run(test_signals, save_df, d, rct_size, os_size, B, kernel, cov_l
     df_combined.loc[df_combined.S==0, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==0').copy(), 'A', cov_list, 'logistic')
     df_combined.loc[df_combined.S==1, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==1').copy(), 'A', cov_list, 'logistic')
 
-    _ = gc_est(df_combined, cov_list, tte_model='coxph')
-
+    cbse, ybse = est_surv(df_combined, cov_list, tte_model='coxph')
+    calc_barG(df_combined, cov_list, cbse, ybse)
 
     ipcw_est(df_combined, S=0)
     ipcw_est(df_combined, S=1)

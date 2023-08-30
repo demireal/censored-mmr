@@ -1,0 +1,4 @@
+Test,m = 2,m = 6,m = 10
+IPCW-Contrast,0.9,1.0,1.0
+Impute-IPW-Contrast,1.0,1.0,1.0
+Drop-IPW-Contrast,1.0,1.0,1.0
