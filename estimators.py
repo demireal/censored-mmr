@@ -115,42 +115,54 @@ def est_surv(df, cov_list, tte_model):
 
 def eval_surv(s, a, x, T, surv_dict):
     '''
-    Evaluate the value of a survival function specificied by "surv_dict, s, a" for "T" with covariates "x"
+    Evaluate the value of a survival function specificied by "surv_dict, s, a" at "T" with covariates "x"
     '''
-    t_arr, st_arr = surv_dict[f't_S{s}_A{a}'], surv_dict[f'St_S{s}_A{a}']
+    
+    t_arr = surv_dict[f't_S{s}_A{a}']
+    st_arr = surv_dict[f'St_S{s}_A{a}']
     
     if list(t_arr) == [-1]:
         res = 1
     else:
         beta_arr = surv_dict[f'beta_S{s}_A{a}']
         base_val = st_arr[np.argmin(np.abs(T - t_arr))]
-        cov_exp = beta_arr @ x
-        res = base_val ** (np.exp(cov_exp))
+        res = base_val ** (np.exp(beta_arr @ x))
     
     return res   
 
 
 def eval_Qfunc(s, a, x, T, ybse):  
-    t_arr, st_arr = ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}']
-
+    
+    t_arr = ybse[f't_S{s}_A{a}']
+    st_arr = ybse[f'St_S{s}_A{a}']
+    beta_arr = ybse[f'beta_S{s}_A{a}'] 
+    
     denum = eval_surv(s, a, x, T, ybse)
-    func = interp1d(t_arr, st_arr, kind='linear', fill_value='extrapolate')
+    
+    stx_arr = st_arr ** (np.exp(beta_arr @ x))
+    func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
     num, _ = quad(func, T, t_arr.max(), limit=100)
+    
     res = num / denum 
     
     return res 
 
 
 def eval_int_term(s, a, x, T, cbse, ybse):
-    # get upper bound index for \tilde{Y} (we use T for \tilde{Y} interchangeably in code)
-    ub_ind = np.where(t_arr < T)[0][-1] + 1
-    t_arr, st_arr = cbse[f't_S{s}_A{a}'][:ub_ind], cbse[f'St_S{s}_A{a}'][:ub_ind]
     
-    deriv = np.gradient(1 - st_arr)
+    ub_ind = np.where(t_arr < T)[0][-1] + 1 # get upper bound index for T
+    
+    t_arr = cbse[f't_S{s}_A{a}'][:ub_ind]
+    st_arr = cbse[f'St_S{s}_A{a}'][:ub_ind]
+    beta_arr = cbse[f'beta_S{s}_A{a}'] 
+    
+    stx_arr = st_arr ** (np.exp(beta_arr @ x))
+
+    deriv = np.gradient(1 - stx_arr)
     num = np.array([eval_Qfunc(s, a, x, c, ybse) for c in t_arr])
     denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
     
-    res = deriv * num / denum
+    res = np.sum(deriv * num / denum)
     
     return res
 
@@ -159,7 +171,7 @@ def eval_Ystar(s, a, x, delta, T, cbse, ybse):
     
     if delta == 1:
         ft_num = T
-    else
+    else:
         ft_num = eval_Qfunc(s, a, x, T, ybse)
 
     first_term = ft_num / eval_surv(s, a, x, T, cbse) 
@@ -169,10 +181,12 @@ def eval_Ystar(s, a, x, delta, T, cbse, ybse):
 
 
 def eval_mu(s, a, x, ybse):
-    t_arr, st_arr = ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}']
-
-    func = interp1d(t_arr, st_arr, kind='linear', fill_value='extrapolate')
-    res, _ = quad(func, T, t_arr.max(), limit=100)
+    t_arr = ybse[f't_S{s}_A{a}']
+    st_arr = ybse[f'St_S{s}_A{a}']
+    
+    stx_arr = st_arr ** (np.exp(beta_arr @ x))
+    func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
+    res, _ = quad(func, 0, t_arr.max(), limit=100)
     
     return res     
 
