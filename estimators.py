@@ -183,6 +183,7 @@ def eval_Ystar(s, a, x, delta, T, cbse, ybse):
 def eval_mu(s, a, x, ybse):
     t_arr = ybse[f't_S{s}_A{a}']
     st_arr = ybse[f'St_S{s}_A{a}']
+    beta_arr = ybse[f'beta_S{s}_A{a}'] 
     
     stx_arr = st_arr ** (np.exp(beta_arr @ x))
     func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
