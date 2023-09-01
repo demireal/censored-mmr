@@ -137,6 +137,25 @@ def eval_surv(s, a, x, T, surv_dict):
     return res   
 
 
+def cond_surv(yy,cc,ybse, a,s, x):
+    if yy < cc: 
+        return 1
+    else:
+        beta_arr = ybse[f'beta_S{s}_A{a}'] 
+        return (np.interp(yy, ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}']) / np.interp(cc, ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}'])) ** (np.exp(beta_arr @ x))
+
+
+def eval_Qfunc_ratio_method(s,a,x,T,ybse):
+    """
+    Evaluate the Q-function using the ratio method
+    """
+    FY_C_S_A = lambda yy, cc : cond_surv(yy,cc, ybse,a =a ,s = s, x = x )
+    t_max = np.max(np.max(ybse[f't_S{s}_A{a}']))
+    if T>=t_max:
+        return T
+    else:
+        return quad(lambda y : FY_C_S_A(y,T) ,a = 0, b=t_max, points = 100 )[0] 
+
 def eval_Qfunc(s, a, x, T, ybse):  
     
     t_arr = ybse[f't_S{s}_A{a}']
