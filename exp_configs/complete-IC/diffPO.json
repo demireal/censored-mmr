@@ -48,9 +48,10 @@
     "test_signals":
 
         {
-        "IPCW-Contrast": ["S0_ipcw_est_CATE", "S1_ipcw_est_CATE"],
-        "Impute-IPW-Contrast": ["S0_impute_ipw_est_CATE", "S1_impute_ipw_est_CATE"],
-        "Drop-IPW-Contrast": ["S0_drop_ipw_est_CATE", "S1_drop_ipw_est_CATE"]
+        "IPCW": ["S0_ipcw_est_CATE", "S1_ipcw_est_CATE"],
+        "CDR": ["S0_cdr_est_CATE", "S1_cdr_est_CATE"],
+        "IPW-Impute": ["S0_impute_ipw_est_CATE", "S1_impute_ipw_est_CATE"],
+        "IPW-Drop": ["S0_drop_ipw_est_CATE", "S1_drop_ipw_est_CATE"]
         }
 
 }

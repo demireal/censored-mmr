@@ -3,6 +3,7 @@
 
 import warnings
 warnings.filterwarnings("ignore")
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,6 +28,7 @@ parser.add_argument('--json_path', required=True, help='Path to the JSON file co
 parser.add_argument('--CD', nargs='+', type=int, help='List of covariate dimension counts')
 parser.add_argument('--UC', nargs='+', type=int, help='List of unmeasured confounder counts')
 parser.add_argument('--M', nargs='+', type=int, help='List of multiplying factors for observational sample size')
+parser.add_argument("--signals", nargs="+", help="List of signals to be tested as strings.")
 args = parser.parse_args()
 
 assert min(args.UC) >=0, 'Number of unmeasured confounders cannot be negative'
@@ -35,7 +37,7 @@ assert max(args.UC) <= min(args.CD), 'Number of unmeasured confounders cannot ex
  
 for cov_dim in args.CD:
     for unmeas_conf in args.UC:
-        jD = read_json(args.json_path, cov_dim, unmeas_conf)
+        jD = read_json(args.json_path, cov_dim, unmeas_conf, args.signals)
 
         mmr_results = np.zeros((len(args.M), len(jD['test_signals']), jD['num_exp']))
         mmr_pvals = np.zeros((len(args.M), len(jD['test_signals']), jD['num_exp']))

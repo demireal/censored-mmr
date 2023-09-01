@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore")
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -6,6 +8,10 @@ from lifelines import CoxPHFitter
 from SyntheticDataModule import *
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+import tqdm
 
 from sklearn.metrics.pairwise import rbf_kernel, laplacian_kernel
 
@@ -93,7 +99,7 @@ def est_surv(df, cov_list, tte_model):
             else:
                 if tte_model == 'coxph':
                     cbse[f't_S{s}_A{a}'], cbse[f'St_S{s}_A{a}'], cbse[f'beta_S{s}_A{a}'] = \
-                    coxph_base_surv(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=True) # fit for C  
+                    coxph_base_surv(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=True) # fit for C 
                     
                 else:
                     raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
@@ -141,28 +147,85 @@ def eval_Qfunc(s, a, x, T, ybse):
     
     stx_arr = st_arr ** (np.exp(beta_arr @ x))
     func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
-    num, _ = quad(func, T, t_arr.max(), limit=100)
+    num, _ = quad(func, T, t_arr.max(), limit=50)
     
     res = num / denum 
     
     return res 
 
 
+def eval_Qfunc_onarray(s, a, x, gt_arr, ybse):  
+    
+    t_arr = ybse[f't_S{s}_A{a}']
+    st_arr = ybse[f'St_S{s}_A{a}']
+    beta_arr = ybse[f'beta_S{s}_A{a}'] 
+    stx_arr = st_arr ** (np.exp(beta_arr @ x))
+    
+    denum = np.array([eval_surv(s, a, x, T, ybse) for T in gt_arr])
+    
+    func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
+    gt_arr = np.append(gt_arr, t_arr.max())
+    pre_num = np.array([quad(func, gt_arr[i], gt_arr[i+1])[0] for i in range(len(gt_arr) - 1)])
+     
+    shift_cumsum = np.roll(np.cumsum(pre_num), 1)
+    shift_cumsum[0] = 0  
+    num = np.sum(pre_num) - shift_cumsum
+    
+    res = num / denum 
+    
+    return res
+
+
 def eval_int_term(s, a, x, T, cbse, ybse):
     
-    ub_ind = np.where(t_arr < T)[0][-1] + 1 # get upper bound index for T
+    t_arr = cbse[f't_S{s}_A{a}']
     
-    t_arr = cbse[f't_S{s}_A{a}'][:ub_ind]
-    st_arr = cbse[f'St_S{s}_A{a}'][:ub_ind]
-    beta_arr = cbse[f'beta_S{s}_A{a}'] 
-    
-    stx_arr = st_arr ** (np.exp(beta_arr @ x))
+    if list(t_arr) == [-1]:
+        res = 0    
+    else:
+        if len(np.where(t_arr < T)[0]) == 0:
+            res = 0
+        else:
+#             st_arr = cbse[f'St_S{s}_A{a}']
+#             new_st_arr, idx = np.unique(st_arr, return_index=True)
+#             new_st_arr, idx = new_st_arr[::-1], idx[::-1]
+#             t_arr = t_arr[idx]
+            
+#             print(f'Len st: {len(st_arr)}')
+#             print(f'Len unique st: {len(new_st_arr)}')
+            
+#             beta_arr = cbse[f'beta_S{s}_A{a}']
+#             stx_arr = new_st_arr ** (np.exp(beta_arr @ x))
+            
+#             if len(stx_arr) == 1:
+#                 res = (1 - stx_arr[0]) * eval_Qfunc(s, a, x, t_arr[0], ybse) / (eval_surv(s, a, x, t_arr[0], cbse) ** 2)
+#             else:
+#                 deriv = np.gradient(1 - stx_arr)
+#                 start_time = time()
+#                 num = eval_Qfunc_onarray(s, a, x, t_arr, ybse)
+#                 print('Time elapsed for Q-function integration: {:.2f}'.format(time() - start_time))
+#                 #num = np.array([eval_Qfunc(s, a, x, c, ybse) for c in t_arr])
+#                 denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
+#                 res = np.sum(deriv * num / denum)            
+            
+            ub_ind = np.where(t_arr < T)[0][-1] + 1 # get upper bound index for T
 
-    deriv = np.gradient(1 - stx_arr)
-    num = np.array([eval_Qfunc(s, a, x, c, ybse) for c in t_arr])
-    denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
-    
-    res = np.sum(deriv * num / denum)
+            t_arr = cbse[f't_S{s}_A{a}'][:ub_ind]
+            st_arr = cbse[f'St_S{s}_A{a}'][:ub_ind]
+            beta_arr = cbse[f'beta_S{s}_A{a}'] 
+
+            stx_arr = st_arr ** (np.exp(beta_arr @ x))
+                
+            if len(stx_arr) == 1:
+                res = (1 - stx_arr[0]) * eval_Qfunc(s, a, x, t_arr[0], ybse) / (eval_surv(s, a, x, t_arr[0], cbse) ** 2)
+            else:            
+                deriv = np.gradient(1 - stx_arr)
+                start_time = time()
+                num = eval_Qfunc_onarray(s, a, x, t_arr, ybse)
+                #print('Time elapsed for Q-function integration: {:.2f}'.format(time() - start_time))
+                #num = np.array([eval_Qfunc(s, a, x, c, ybse) for c in t_arr])
+                denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
+                res = np.sum(deriv * num / denum)     
     
     return res
 
@@ -186,12 +249,13 @@ def eval_mu(s, a, x, ybse):
     beta_arr = ybse[f'beta_S{s}_A{a}'] 
     
     stx_arr = st_arr ** (np.exp(beta_arr @ x))
-    func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
-    res, _ = quad(func, 0, t_arr.max(), limit=100)
+    func = interp1d(t_arr, stx_arr, kind='nearest-up', fill_value='extrapolate')
+    res, _ = quad(func, 0, t_arr.max(), limit=4)
     
     return res     
 
-def calc_surv_fns(df, cov_list, cbse, ybse):
+
+def fill_barG(df, cov_list, cbse):
     '''
     Fill the values for G_bar(T|X,S,A) that are used in both the IPCW and the DR signal.
     '''
@@ -226,6 +290,40 @@ def ipcw_est(df, S):
         df.loc[i, f'S{S}_ipcw_est_CATE'] = ipcw
         df.loc[i, f'S{S}_ipcw_est_Y1'] = row['A'] * ipcw
         df.loc[i, f'S{S}_ipcw_est_Y0'] = - (1 - row['A']) * ipcw
+        
+
+def cdr_est(df, cov_list, cbse, ybse, S):
+
+    for i in range(len(df)):  
+        row = df.loc[i]
+        
+        if row['S'] == S:
+            aind = int(row['A'])
+            psx = S * row['P(S=1|X)'] + (1 - S) * (1 - row['P(S=1|X)'])
+            
+#             t1 = time()
+            
+            mu_xsa1 = eval_mu(S, 1, row[cov_list], ybse)
+            mu_xsa0 = eval_mu(S, 0, row[cov_list], ybse)
+            
+#             t2 = time()
+#             print(f"mu time: {t2 - t1:.4f}")
+            
+            mu_xs = mu_xsa1 - mu_xsa0
+            Ystar_xsa = eval_Ystar(S, aind, row[cov_list], row['Delta'], row['T'], cbse, ybse)
+            
+#             t3 = time()
+#             print(f"YSTAR time: {t3 - t2:.4f}")
+            
+            mu_xsa = aind * mu_xsa1 + (1 - aind) * mu_xsa0
+            pa_xs = aind * row['P(A=1|X,S)'] + (1 - aind) * (1 - row['P(A=1|X,S)'])            
+            
+            cdr = ((Ystar_xsa - mu_xsa) / pa_xs + mu_xs) / psx
+
+        else:
+            cdr = 0
+
+        df.loc[i, f'S{S}_cdr_est_CATE'] = cdr
 
 
 def ipw_est(df, S, baseline):
@@ -299,23 +397,31 @@ def single_mmr_run(test_signals, save_df, d, rct_size, os_size, B, kernel, cov_l
     df_combined.loc[df_combined.S==1, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==1').copy(), 'A', cov_list, 'logistic')
 
     cbse, ybse = est_surv(df_combined, cov_list, tte_model='coxph')
-    calc_barG(df_combined, cov_list, cbse, ybse)
+    fill_barG(df_combined, cov_list, cbse)
 
-    ipcw_est(df_combined, S=0)
-    ipcw_est(df_combined, S=1)
-    ipw_est(df_combined, S=0, baseline='impute')  # censored observations are IMPUTED
-    ipw_est(df_combined, S=1, baseline='impute')  # censored observations are IMPUTED
+    if any("IPCW" in key for key in test_signals.keys()):
+        ipcw_est(df_combined, S=0)
+        ipcw_est(df_combined, S=1)
+        
+    if any("IPW-Impute" in key for key in test_signals.keys()):
+        ipw_est(df_combined, S=0, baseline='impute')  # censored observations are IMPUTED
+        ipw_est(df_combined, S=1, baseline='impute')  # censored observations are IMPUTED
+        
+    if any("CDR" in key for key in test_signals.keys()):
+        cdr_est(df_combined, cov_list, cbse, ybse, S=0)  
+        cdr_est(df_combined, cov_list, cbse, ybse, S=1)  
     
     
     # Estimate the nuisance parameters for the combined dataframe with censored observations dropped
     
-    df_comb_drop['P(S=1|X)'] = prop_score_est(df_comb_drop.copy(), 'S', cov_list, 'logistic')
+    if any("IPW-Drop" in key for key in test_signals.keys()):
+        df_comb_drop['P(S=1|X)'] = prop_score_est(df_comb_drop.copy(), 'S', cov_list, 'logistic')
 
-    df_comb_drop.loc[df_comb_drop.S==0, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==0').copy(), 'A', cov_list, 'logistic')
-    df_comb_drop.loc[df_comb_drop.S==1, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==1').copy(), 'A', cov_list, 'logistic')
+        df_comb_drop.loc[df_comb_drop.S==0, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==0').copy(), 'A', cov_list, 'logistic')
+        df_comb_drop.loc[df_comb_drop.S==1, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==1').copy(), 'A', cov_list, 'logistic')
 
-    ipw_est(df_comb_drop, S=0, baseline='drop')  # censored observations are DROPPED
-    ipw_est(df_comb_drop, S=1, baseline='drop')  # censored observations are DROPPED
+        ipw_est(df_comb_drop, S=0, baseline='drop')  # censored observations are DROPPED
+        ipw_est(df_comb_drop, S=1, baseline='drop')  # censored observations are DROPPED
     
     mmr_stats = np.zeros((len(test_signals), 2))  # store results and p-val for each mmr test
 

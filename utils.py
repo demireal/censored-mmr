@@ -34,7 +34,7 @@ def weibull_oracle_adj_surv(T, x, args):
     return np.exp(-((args['lambda'] * T) ** args['p']) * np.exp(x @ args['beta']))
 
 
-def read_json(json_path, d, uc):
+def read_json(json_path, d, uc, sigs_to_keep):
     with open('exp_configs/' + json_path, 'r') as file:
         try:
             jD = json.load(file)
@@ -76,6 +76,9 @@ def read_json(json_path, d, uc):
     jD_new['OS']['tte_params']['cox_args']['C1']['beta'] = jD['OS']['tte_params']['cox_args']['C1']['beta'][:d+1]
     
     jD_new['cov_list'] = [f'X{i}' for i in range(d - uc + 1)]
+    jD_new['test_signals'] = {key: value for key, value in jD['test_signals'].items() if key in sigs_to_keep}
+    
+    
     
     return jD_new
     
