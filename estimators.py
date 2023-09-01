@@ -136,6 +136,37 @@ def eval_surv(s, a, x, T, surv_dict):
     
     return res   
 
+    
+#Conditional survival function (P(Y>yy|Y>cc))
+def cond_surv(yy,cc,ybse, a,s, x, S0_t):
+    """
+    Returns the probability that Y>yy | Y>cc
+    """
+    if yy < cc: # survival probability is one if time is smaller than the condition
+        return 1
+    else:
+        beta_arr = ybse[f'beta_S{s}_A{a}'] 
+
+        return (np.interp(yy, ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}']) / S0_t)** (np.exp(beta_arr @ x))
+
+
+def eval_Qfunc_ratio(s,a,x,T,ybse, thresh = 1e-6):
+    """
+    Q function with the ratio method + additional checks for stability
+
+    """
+    S0_t = np.interp(T, ybse[f't_S{s}_A{a}'], ybse[f'St_S{s}_A{a}'])
+
+    beta_arr = ybse[f'beta_S{s}_A{a}'] 
+    if (S0_t** (np.exp(beta_arr @ x))) < thresh: # If survival probability is too small, we just return the conditionned time.
+        return T
+
+    FY_C_S_A = lambda yy, cc : cond_surv(yy,cc, ybse,a =a ,s = s, x = x, S0_t = S0_t )
+    t_max = np.max(np.max(ybse[f't_S{s}_A{a}']))
+    if T>=t_max:
+        return T # When we are outside the support, we assume instantaneous failure.
+    else:
+        return quad(lambda y : FY_C_S_A(y,T) ,a = 0, b=t_max, points = 100 )[0] 
 
 def eval_Qfunc(s, a, x, T, ybse):  
     
