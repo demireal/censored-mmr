@@ -147,7 +147,7 @@ def eval_Qfunc(s, a, x, T, ybse):
     
     stx_arr = st_arr ** (np.exp(beta_arr @ x))
     func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
-    num, _ = quad(func, T, t_arr.max(), limit=50)
+    num, _ = quad(func, T, t_arr.max(), limit=10)
     
     res = num / denum 
     
@@ -156,21 +156,23 @@ def eval_Qfunc(s, a, x, T, ybse):
 
 def eval_Qfunc_onarray(s, a, x, gt_arr, ybse):  
     
+    denum = np.array([eval_surv(s, a, x, T, ybse) for T in gt_arr])
+    
     t_arr = ybse[f't_S{s}_A{a}']
     st_arr = ybse[f'St_S{s}_A{a}']
     beta_arr = ybse[f'beta_S{s}_A{a}'] 
     stx_arr = st_arr ** (np.exp(beta_arr @ x))
-    
-    denum = np.array([eval_surv(s, a, x, T, ybse) for T in gt_arr])
-    
     func = interp1d(t_arr, stx_arr, kind='linear', fill_value='extrapolate')
-    gt_arr = np.append(gt_arr, t_arr.max())
-    pre_num = np.array([quad(func, gt_arr[i], gt_arr[i+1])[0] for i in range(len(gt_arr) - 1)])
-     
-    shift_cumsum = np.roll(np.cumsum(pre_num), 1)
-    shift_cumsum[0] = 0  
-    num = np.sum(pre_num) - shift_cumsum
     
+    func_vals = np.array(list(map(func, gt_arr)))
+    gt_arr = np.append(gt_arr, t_arr.max())
+    gt_diff_arr = [b - a for a, b in zip(gt_arr, gt_arr[1:])]
+    
+    areas = func_vals * gt_diff_arr
+    shift_cumsum = np.roll(np.cumsum(areas), 1)
+    shift_cumsum[0] = 0  
+    num = np.sum(areas) - shift_cumsum
+
     res = num / denum 
     
     return res
@@ -186,46 +188,40 @@ def eval_int_term(s, a, x, T, cbse, ybse):
         if len(np.where(t_arr < T)[0]) == 0:
             res = 0
         else:
-#             st_arr = cbse[f'St_S{s}_A{a}']
-#             new_st_arr, idx = np.unique(st_arr, return_index=True)
-#             new_st_arr, idx = new_st_arr[::-1], idx[::-1]
-#             t_arr = t_arr[idx]
+            st_arr = cbse[f'St_S{s}_A{a}']
+            beta_arr = cbse[f'beta_S{s}_A{a}']
+            new_st_arr, idx = np.unique(st_arr, return_index=True)
+            new_st_arr, idx = new_st_arr[::-1], idx[::-1]
+            t_arr = t_arr[idx]
             
-#             print(f'Len st: {len(st_arr)}')
-#             print(f'Len unique st: {len(new_st_arr)}')
+            stx_arr = new_st_arr ** (np.exp(beta_arr @ x))
+            Gc = 1 - stx_arr
+            Gc = np.append(Gc, 0)
+            dGc = [b - a for a, b in zip(Gc, Gc[1:])]
+            start_time = time()
+            num = eval_Qfunc_onarray(s, a, x, t_arr, ybse)
+            #print('Time elapsed for Q-function integration: {:.2f}'.format(time() - start_time))
+            denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
+            res = np.sum(dGc * num / denum)            
             
-#             beta_arr = cbse[f'beta_S{s}_A{a}']
-#             stx_arr = new_st_arr ** (np.exp(beta_arr @ x))
-            
+#             ub_ind = np.where(t_arr < T)[0][-1] + 1 # get upper bound index for T
+
+#             t_arr = cbse[f't_S{s}_A{a}'][:ub_ind]
+#             st_arr = cbse[f'St_S{s}_A{a}'][:ub_ind]
+#             beta_arr = cbse[f'beta_S{s}_A{a}'] 
+
+#             stx_arr = st_arr ** (np.exp(beta_arr @ x))
+                
 #             if len(stx_arr) == 1:
 #                 res = (1 - stx_arr[0]) * eval_Qfunc(s, a, x, t_arr[0], ybse) / (eval_surv(s, a, x, t_arr[0], cbse) ** 2)
-#             else:
+#             else:            
 #                 deriv = np.gradient(1 - stx_arr)
 #                 start_time = time()
 #                 num = eval_Qfunc_onarray(s, a, x, t_arr, ybse)
-#                 print('Time elapsed for Q-function integration: {:.2f}'.format(time() - start_time))
+#                 #print('Time elapsed for Q-function integration: {:.2f}'.format(time() - start_time))
 #                 #num = np.array([eval_Qfunc(s, a, x, c, ybse) for c in t_arr])
 #                 denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
-#                 res = np.sum(deriv * num / denum)            
-            
-            ub_ind = np.where(t_arr < T)[0][-1] + 1 # get upper bound index for T
-
-            t_arr = cbse[f't_S{s}_A{a}'][:ub_ind]
-            st_arr = cbse[f'St_S{s}_A{a}'][:ub_ind]
-            beta_arr = cbse[f'beta_S{s}_A{a}'] 
-
-            stx_arr = st_arr ** (np.exp(beta_arr @ x))
-                
-            if len(stx_arr) == 1:
-                res = (1 - stx_arr[0]) * eval_Qfunc(s, a, x, t_arr[0], ybse) / (eval_surv(s, a, x, t_arr[0], cbse) ** 2)
-            else:            
-                deriv = np.gradient(1 - stx_arr)
-                start_time = time()
-                num = eval_Qfunc_onarray(s, a, x, t_arr, ybse)
-                #print('Time elapsed for Q-function integration: {:.2f}'.format(time() - start_time))
-                #num = np.array([eval_Qfunc(s, a, x, c, ybse) for c in t_arr])
-                denum = np.array([eval_surv(s, a, x, c, cbse) ** 2 for c in t_arr])
-                res = np.sum(deriv * num / denum)     
+#                 res = np.sum(deriv * num / denum)     
     
     return res
 
