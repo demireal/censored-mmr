@@ -151,7 +151,7 @@ def eval_Qfunc(s, a, x, T, ybse):
     
     res = num / denum 
     
-    return res 
+    return res, num, denum 
 
 
 def eval_Qfunc_onarray(s, a, x, gt_arr, ybse):  
