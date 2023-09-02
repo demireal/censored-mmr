@@ -178,7 +178,7 @@ def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y):
     
     func = interp1d(Fb_sa_t, Fb_sax, kind='linear', fill_value='extrapolate')  # Fb(t|X=x,S=s,A=a)
     # Calculate individual areas of Integral(Fb(t|..)) between every value in Gb_sa_t_idx and finally to infinity (tmax)
-    interval_integrals = np.array(list(map(lambda c1, c2: quad(func, a=c1, b=c2, limit=2)[0], t_int[:-1], t_int[1:])))
+    interval_integrals = np.array(list(map(lambda c1, c2: quad(func, a=c1, b=c2, limit=1)[0], t_int[:-1], t_int[1:])))
     
     # Three lines below compute "integrals" which is equal to Fb(c|..) for every c in Gb_sa_t_idx
     shift_cumsum = np.roll(np.cumsum(interval_integrals), 1)
@@ -192,12 +192,12 @@ def eval_int_term_(s, a, x, T, Gb_C, Fb_Y):
     
     Gb_sa_t = Gb_C[f't_S{s}_A{a}']        # t indices for Gb(t|S=s,A=a)
     eval_idx = np.where(Gb_sa_t < T)[0]   # indices to evaluate the integral for
-    Gb_sa_t_idx = Gb_sa_t[eval_idx].copy()
     
     if (list(Gb_sa_t) == [-1]) or (len(eval_idx) == 0): 
         return 0    
 
     else:
+        Gb_sa_t_idx = Gb_sa_t[eval_idx].copy()
         Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
         Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Gb(t|X,S=s,A=a)
         Gb_sax = Gb_sa ** (np.exp(Gb_sa_beta @ x))  # Gb(t|X=x,S=s,A=a) = P(C>t|X=x,S=s,A=a)
@@ -211,7 +211,7 @@ def eval_int_term_(s, a, x, T, Gb_C, Fb_Y):
         Q_num = eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y)
         Gbsq_denum = np.array(list(map(lambda c: eval_surv_(Gb_sa_t, Gb_sax, c) ** 2, Gb_sa_t_idx)))
         
-        print('Time elapsed for compting the integral term: {:.2f}'.format(time() - start_time))
+        #print('Time elapsed for compting the integral term: {:.2f}'.format(time() - start_time))
         
         return np.sum(dG_sax_idx * Q_num / Gbsq_denum)            
     
@@ -436,7 +436,8 @@ def single_mmr_run(test_signals, save_df, d, rct_size, os_size, B, kernel, cov_l
             
             if crop_prop:
                 df_mmr = df_combined[(0.05 < df_combined['P(S=1|X)']) & (df_combined['P(S=1|X)'] < 0.95) &\
-                        (0.05 < df_combined['P(A=1|X,S)']) & (df_combined['P(A=1|X,S)'] < 0.95)].copy().reset_index(drop=True)
+                        (0.05 < df_combined['P(A=1|X,S)']) & (df_combined['P(A=1|X,S)'] < 0.95) &\
+                        (0.05 < df_combined['Gb(T|X,S,A)'])].copy().reset_index(drop=True)
                
             else:
                 df_mmr = df_combined.copy()

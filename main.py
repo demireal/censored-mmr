@@ -46,10 +46,12 @@ for cov_dim in args.CD:
         mmr_results_df = pd.DataFrame(columns=['Test'] + m_cols, index=range(len(jD['test_signals'])))
 
         for mind, m in enumerate(args.M):
+            print(f'STARTING >>> CD: {cov_dim}, UC: {unmeas_conf}, m: {m}')
             start_time = time()
             os_size = jD['rct_size'] * m 
 
-            local_mmr_results = Parallel(n_jobs=int(cpu_count()))(
+            max_jobs = cpu_count()
+            local_mmr_results = Parallel(n_jobs=max_jobs)(
                                     delayed(single_mmr_run)(
            jD['test_signals'], jD['save_df'], cov_dim, jD['rct_size'], os_size,
            jD['B'], laplacian_kernel, jD['cov_list'], jD['crop_prop'],
