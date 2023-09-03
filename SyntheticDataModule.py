@@ -217,7 +217,7 @@ class SyntheticDataModule:
         matplotlib.rcParams['ps.fonttype'] = 42
         if save_fig: os.makedirs(self.fig_save_dir, exist_ok=True)
  
-        self._plot_px(save_fig, cov_dim)
+        #self._plot_px(save_fig, cov_dim)
         self._plot_prop_score(save_fig)
         self._plot_outcomes(save_fig) 
     
@@ -235,6 +235,8 @@ class SyntheticDataModule:
     def _plot_prop_score(self, save_fig=True):
         plt.figure()
         sns.histplot(data=self.df, x='prop_score', kde=True, bins='auto')
+        if self.S == 1:
+            plt.xticks([0, 0.05, 0.2, 0.4, 0.6, 0.8, 0.95, 1])
         plt.title('Propensity scores')
         plt.xlabel('P(A=1 | X, S={})'.format(self.df['S'][0].astype(int)))
         plt.ylabel('Count')

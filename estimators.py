@@ -158,7 +158,7 @@ def eval_Qfunc_(s, a, x, T, Fb_Y, thresh=1e-6):
         return T 
     else:
         Fb_csax = lambda yy, cc : eval_cond_surv_(yy, cc, Fb_sa_t, Fb_sax)  # Fb(t|X=x,Y>cc,S=s,A=a) = P(Y>t|X=x,Y>cc,S=s,A=a)
-        return quad(lambda y : Fb_csax(y,T), a=0, b=t_max, limit=10)[0]
+        return quad(lambda y : Fb_csax(y,T), a=0, b=t_max, limit=1)[0]
     
     
 def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y):  
@@ -211,7 +211,7 @@ def eval_int_term_(s, a, x, T, Gb_C, Fb_Y):
         Q_num = eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y)
         Gbsq_denum = np.array(list(map(lambda c: eval_surv_(Gb_sa_t, Gb_sax, c) ** 2, Gb_sa_t_idx)))
         
-        #print('Time elapsed for compting the integral term: {:.2f}'.format(time() - start_time))
+        #print('Time elapsed for computing the integral term: {:.2f}'.format(time() - start_time))
         
         return np.sum(dG_sax_idx * Q_num / Gbsq_denum)            
     
@@ -248,16 +248,8 @@ def eval_mu_(s, a, x, Fb_Y):
     Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
         
     func = interp1d(Fb_sa_t, Fb_sax, kind='nearest-up', fill_value='extrapolate')
-    return quad(func, a=0, b=Fb_sa_t.max(), limit=10)[0]    
+    return quad(func, a=0, b=Fb_sa_t.max(), limit=1)[0]    
 
-
-def fill_barG(df, cov_list, Gb_C):
-    '''
-    Fill the values for Gb(T|X,S,A) = P(C>T|X,S,A)   that are used in both the IPCW and the DR signal.
-    '''
-    df['Gb(T|X,S,A)'] = df.apply(lambda r:\
-     eval_surv_(Gb_C[f"t_S{int(r['S'])}_A{int(r['A'])}"], Gb_C[f"St_S{int(r['S'])}_A{int(r['A'])}"], r['T']), axis=1)
-    
 
 def ipcw_est(df, S):
     '''
@@ -289,32 +281,27 @@ def ipcw_est(df, S):
         df.loc[i, f'S{S}_ipcw_est_Y0'] = - (1 - row['A']) * ipcw
         
 
-def cdr_est(df, cov_list, cbse, ybse, S):
+def cdr_est(df, cov_list, Gb_C, Fb_Y, S):
 
     for i in range(len(df)):  
         row = df.loc[i]
         
-        if row['S'] == S:
+        if row['S'] == S:  # implement 1{S=s}
             aind = int(row['A'])
             psx = S * row['P(S=1|X)'] + (1 - S) * (1 - row['P(S=1|X)'])
             
-#             t1 = time()
+            t1 = time()
+            mu_xsa1 = eval_mu_(S, 1, row[cov_list], Fb_Y) 
+            mu_xsa0 = eval_mu_(S, 0, row[cov_list], Fb_Y)  
+            mu_xs = mu_xsa1 - mu_xsa0  # \mu_S1(X) - \mu_S0(X) is calculated regardless of A=0,1 and goes into CDR
+            mu_xsa = aind * mu_xsa1 + (1 - aind) * mu_xsa0  # \mu_SA(X) for the numerator (Ystar - \mu_SA(X)) with A=aind
             
-            mu_xsa1 = eval_mu_(S, 1, row[cov_list], ybse)
-            mu_xsa0 = eval_mu_(S, 0, row[cov_list], ybse)
-            
-#             t2 = time()
-#             print(f"mu time: {t2 - t1:.4f}")
-            
-            mu_xs = mu_xsa1 - mu_xsa0
-            Ystar_xsa = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], cbse, ybse)
-            
-#             t3 = time()
-#             print(f"YSTAR time: {t3 - t2:.4f}")
-            
-            mu_xsa = aind * mu_xsa1 + (1 - aind) * mu_xsa0
+            t2 = time()
+            Ystar_xsa = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y)  # calculate Y* for only A=aind
+              
+#             print(f"mu time: {t2 - t1:.4f}, YSTAR time: {time() - t2:.4f}")       
+              
             pa_xs = aind * row['P(A=1|X,S)'] + (1 - aind) * (1 - row['P(A=1|X,S)'])            
-            
             cdr = ((Ystar_xsa - mu_xsa) / pa_xs + mu_xs) / psx
 
         else:
@@ -352,6 +339,56 @@ def ipw_est(df, S, baseline):
         df.loc[i, f'S{S}_{baseline}_ipw_est_Y0'] = - (1 - row['A']) * ipw
         
 
+def generate_data(d, os_size, jD):
+    
+    RCTData = SyntheticDataModule(jD['save_df'], d, jD['rct_size'], 0, jD['RCT']['px_dist'], jD['RCT']['px_args'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'])
+    OSData = SyntheticDataModule(jD['save_df'], d, os_size, 1, jD['OS']['px_dist'], jD['OS']['px_args'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'])
+
+    _, df_rct = RCTData.get_df()
+    _, df_os = OSData.get_df()
+
+    df_combined = pd.concat([df_rct, df_os], axis=0, ignore_index=True)  # merge the dataframes into one
+    df_comb_drop = df_combined.query('Delta == 1').reset_index(drop=True).copy()  # drop the censored observations
+    
+    return df_combined, df_comb_drop, RCTData, OSData
+
+
+def fill_nuisance(df_combined, df_comb_drop, jD):
+    # Estimate the nuisance parameters for the combined dataframe
+
+    df_combined['P(S=1|X)'] = prop_score_est(df_combined.copy(), 'S', jD['cov_list'], 'logistic')
+
+    df_combined.loc[df_combined.S==0, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==0').copy(), 'A', jD['cov_list'], 'logistic')
+    df_combined.loc[df_combined.S==1, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==1').copy(), 'A', jD['cov_list'], 'logistic')
+
+    Gb_C, Fb_Y = est_surv(df_combined,  jD['cov_list'], tte_model='coxph')
+    df_combined['Gb(T|X,S,A)'] = df_combined.apply(lambda r:\
+     eval_surv_(Gb_C[f"t_S{int(r['S'])}_A{int(r['A'])}"], Gb_C[f"St_S{int(r['S'])}_A{int(r['A'])}"], r['T']), axis=1)
+
+    if any("IPCW" in key for key in jD['test_signals'].keys()):
+        ipcw_est(df_combined, S=0)
+        ipcw_est(df_combined, S=1)
+        
+    if any("IPW-Impute" in key for key in jD['test_signals'].keys()):
+        ipw_est(df_combined, S=0, baseline='impute')  # censored observations are IMPUTED
+        ipw_est(df_combined, S=1, baseline='impute')  # censored observations are IMPUTED
+        
+    if any("CDR" in key for key in jD['test_signals'].keys()):
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=0)  
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=1)  
+    
+    # Estimate the nuisance parameters for the combined dataframe with censored observations dropped
+    
+    if any("IPW-Drop" in key for key in jD['test_signals'].keys()):
+        df_comb_drop['P(S=1|X)'] = prop_score_est(df_comb_drop.copy(), 'S', jD['cov_list'], 'logistic')
+
+        df_comb_drop.loc[df_comb_drop.S==0, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==0').copy(), 'A', jD['cov_list'], 'logistic')
+        df_comb_drop.loc[df_comb_drop.S==1, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==1').copy(), 'A', jD['cov_list'], 'logistic')
+
+        ipw_est(df_comb_drop, S=0, baseline='drop')  # censored observations are DROPPED
+        ipw_est(df_comb_drop, S=1, baseline='drop')  # censored observations are DROPPED
+        
+
 def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE'):
     n = len(df)
     Kxx = kernel(df[cov_list])
@@ -373,76 +410,30 @@ def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE',
     return int(pval < 0.05), pval
 
 
-def single_mmr_run(test_signals, save_df, d, rct_size, os_size, B, kernel, cov_list, crop_prop,
-                   px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r,
-                   px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o):
+def mmr_run(d, os_size, kernel, jD):
     
-    RCTData = SyntheticDataModule(save_df, d, rct_size, 0, px_dist_r, px_args_r, prop_fn_r, prop_args_r, tte_params_r)
-    OSData = SyntheticDataModule(save_df, d, os_size, 1, px_dist_o, px_args_o, prop_fn_o, prop_args_o, tte_params_o)
-
-    df_rct_oracle, df_rct = RCTData.get_df()
-    df_os_oracle, df_os = OSData.get_df()
-
-    df_combined = pd.concat([df_rct, df_os], axis=0, ignore_index=True)  # merge the dataframes into one
-    df_comb_drop = df_combined.query('Delta == 1').reset_index(drop=True).copy()  # drop the censored observations
-
-    # Estimate the nuisance parameters for the combined dataframe
-
-    df_combined['P(S=1|X)'] = prop_score_est(df_combined.copy(), 'S', cov_list, 'logistic')
-
-    df_combined.loc[df_combined.S==0, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==0').copy(), 'A', cov_list, 'logistic')
-    df_combined.loc[df_combined.S==1, 'P(A=1|X,S)'] = prop_score_est(df_combined.query('S==1').copy(), 'A', cov_list, 'logistic')
-
-    Gb_C, Fb_Y = est_surv(df_combined, cov_list, tte_model='coxph')
-    fill_barG(df_combined, cov_list, Gb_C)
-
-    if any("IPCW" in key for key in test_signals.keys()):
-        ipcw_est(df_combined, S=0)
-        ipcw_est(df_combined, S=1)
-        
-    if any("IPW-Impute" in key for key in test_signals.keys()):
-        ipw_est(df_combined, S=0, baseline='impute')  # censored observations are IMPUTED
-        ipw_est(df_combined, S=1, baseline='impute')  # censored observations are IMPUTED
-        
-    if any("CDR" in key for key in test_signals.keys()):
-        cdr_est(df_combined, cov_list, Gb_C, Fb_Y, S=0)  
-        cdr_est(df_combined, cov_list, Gb_C, Fb_Y, S=1)  
+    df_combined, df_comb_drop, _, _ = generate_data(d, os_size, jD)
+    fill_nuisance(df_combined, df_comb_drop, jD)
     
-    
-    # Estimate the nuisance parameters for the combined dataframe with censored observations dropped
-    
-    if any("IPW-Drop" in key for key in test_signals.keys()):
-        df_comb_drop['P(S=1|X)'] = prop_score_est(df_comb_drop.copy(), 'S', cov_list, 'logistic')
+    mmr_stats = np.zeros((len(jD['test_signals']), 2))  # store results and p-val for each mmr test
 
-        df_comb_drop.loc[df_comb_drop.S==0, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==0').copy(), 'A', cov_list, 'logistic')
-        df_comb_drop.loc[df_comb_drop.S==1, 'P(A=1|X,S)'] = prop_score_est(df_comb_drop.query('S==1').copy(), 'A', cov_list, 'logistic')
-
-        ipw_est(df_comb_drop, S=0, baseline='drop')  # censored observations are DROPPED
-        ipw_est(df_comb_drop, S=1, baseline='drop')  # censored observations are DROPPED
-    
-    mmr_stats = np.zeros((len(test_signals), 2))  # store results and p-val for each mmr test
-
-    for kind, key in enumerate(test_signals):
+    for kind, key in enumerate(jD['test_signals']):
         
         if 'Drop' in key:
-            
-            if crop_prop:
-                df_mmr = df_comb_drop[(0.05 < df_comb_drop['P(S=1|X)']) & (df_comb_drop['P(S=1|X)'] < 0.95) &\
-                    (0.05 < df_comb_drop['P(A=1|X,S)']) & (df_comb_drop['P(A=1|X,S)'] < 0.95)].copy().reset_index(drop=True)
-                
-            else:
-                df_mmr = df_comb_drop.copy()
+            df_mmr = df_comb_drop.copy()
         else:
+            df_mmr = df_combined.copy()
             
-            if crop_prop:
-                df_mmr = df_combined[(0.05 < df_combined['P(S=1|X)']) & (df_combined['P(S=1|X)'] < 0.95) &\
-                        (0.05 < df_combined['P(A=1|X,S)']) & (df_combined['P(A=1|X,S)'] < 0.95) &\
-                        (0.05 < df_combined['Gb(T|X,S,A)'])].copy().reset_index(drop=True)
-               
-            else:
-                df_mmr = df_combined.copy()
+        if jD['crop_prop'] and ('Drop' not in key):
+            df_mmr = df_mmr[(0.05 < df_mmr['P(S=1|X)']) & (df_mmr['P(S=1|X)'] < 0.95) &\
+                    (0.05 < df_mmr['P(A=1|X,S)']) & (df_mmr['P(A=1|X,S)'] < 0.95) &\
+                    (0.01 < df_mmr['Gb(T|X,S,A)'])].copy().reset_index(drop=True)
             
-        signal0, signal1 = test_signals[key][0], test_signals[key][1]
-        mmr_stats[kind, 0], mmr_stats[kind, 1] = mmr_test(df_mmr, cov_list, B, kernel, signal0, signal1)
+        if jD['crop_prop'] and ('Drop' in key):
+            df_mmr = df_mmr[(0.05 < df_mmr['P(S=1|X)']) & (df_mmr['P(S=1|X)'] < 0.95) &\
+                    (0.05 < df_mmr['P(A=1|X,S)']) & (df_mmr['P(A=1|X,S)'] < 0.95)].copy().reset_index(drop=True)
+            
+        signal0, signal1 = jD['test_signals'][key][0], jD['test_signals'][key][1]
+        mmr_stats[kind, 0], mmr_stats[kind, 1] = mmr_test(df_mmr, jD['cov_list'], jD['B'], kernel, signal0, signal1)
         
     return mmr_stats

@@ -51,15 +51,8 @@ for cov_dim in args.CD:
             os_size = jD['rct_size'] * m 
 
             max_jobs = cpu_count()
-            local_mmr_results = Parallel(n_jobs=max_jobs)(
-                                    delayed(single_mmr_run)(
-           jD['test_signals'], jD['save_df'], cov_dim, jD['rct_size'], os_size,
-           jD['B'], laplacian_kernel, jD['cov_list'], jD['crop_prop'],
-           jD['RCT']['px_dist'], jD['RCT']['px_args'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'],
-           jD['OS']['px_dist'], jD['OS']['px_args'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'],
-               )
-                for nind in range(jD['num_exp'])
-            )
+            local_mmr_results = Parallel(n_jobs=max_jobs)(delayed(mmr_run)(cov_dim, os_size, laplacian_kernel, jD)
+                                                                for nind in range(jD['num_exp']))
 
             for nind in range(jD['num_exp']):
                 for kind in range(len(jD['test_signals'])):
