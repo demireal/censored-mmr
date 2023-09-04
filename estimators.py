@@ -427,7 +427,7 @@ def mmr_run(d, os_size, kernel, jD):
         if jD['crop_prop'] and ('Drop' not in key):
             df_mmr = df_mmr[(0.05 < df_mmr['P(S=1|X)']) & (df_mmr['P(S=1|X)'] < 0.95) &\
                     (0.05 < df_mmr['P(A=1|X,S)']) & (df_mmr['P(A=1|X,S)'] < 0.95) &\
-                    (0.01 < df_mmr['Gb(T|X,S,A)'])].copy().reset_index(drop=True)
+                    (0.05 < df_mmr['Gb(T|X,S,A)'])].copy().reset_index(drop=True)
             
         if jD['crop_prop'] and ('Drop' in key):
             df_mmr = df_mmr[(0.05 < df_mmr['P(S=1|X)']) & (df_mmr['P(S=1|X)'] < 0.95) &\

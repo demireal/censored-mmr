@@ -1,0 +1,5 @@
+Test,m = 1,m = 2
+IPCW,0.925,0.975
+CDR,0.95,1.0
+IPW-Impute,1.0,1.0
+IPW-Drop,1.0,1.0
