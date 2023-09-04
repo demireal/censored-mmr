@@ -177,8 +177,12 @@ def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y):
     t_int = np.append(Gb_sa_t_idx, t_max)
     
     func = interp1d(Fb_sa_t, Fb_sax, kind='linear', fill_value='extrapolate')  # Fb(t|X=x,S=s,A=a)
+    
     # Calculate individual areas of Integral(Fb(t|..)) between every value in Gb_sa_t_idx and finally to infinity (tmax)
-    interval_integrals = np.array(list(map(lambda c1, c2: quad(func, a=c1, b=c2, limit=1)[0], t_int[:-1], t_int[1:])))
+    
+    #interval_integrals = np.array(list(map(lambda c1, c2: quad(func, a=c1, b=c2, limit=1)[0], t_int[:-1], t_int[1:])))
+    # below is WAY faster: other two quads (eval_mu & eval_Qfunc) need not to be replaced they are negligible
+    interval_integrals = np.array(list(map(lambda c1, c2: (c2 - c1) * (func(c2) + func(c1)) / 2, t_int[:-1], t_int[1:])))
     
     # Three lines below compute "integrals" which is equal to Fb(c|..) for every c in Gb_sa_t_idx
     shift_cumsum = np.roll(np.cumsum(interval_integrals), 1)
@@ -388,6 +392,7 @@ def fill_nuisance(df_combined, df_comb_drop, jD):
         ipw_est(df_comb_drop, S=0, baseline='drop')  # censored observations are DROPPED
         ipw_est(df_comb_drop, S=1, baseline='drop')  # censored observations are DROPPED
         
+    return Fb_Y, Gb_C
 
 def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE'):
     n = len(df)
@@ -413,7 +418,7 @@ def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE',
 def mmr_run(d, os_size, kernel, jD):
     
     df_combined, df_comb_drop, _, _ = generate_data(d, os_size, jD)
-    fill_nuisance(df_combined, df_comb_drop, jD)
+    _, _ = fill_nuisance(df_combined, df_comb_drop, jD)
     
     mmr_stats = np.zeros((len(jD['test_signals']), 2))  # store results and p-val for each mmr test
 
