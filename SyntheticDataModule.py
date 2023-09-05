@@ -147,7 +147,7 @@ class SyntheticDataModule:
             else:
                 df.loc[i, 'sc'] = self._oracle_adj_surv(df.loc[i, 'T'], df.loc[i, self.cov_list], 'C1')
 
-        df_observed = df[self.cov_list + ['S', 'A', 'T', 'Delta']].copy()
+        df_observed = df[self.cov_list + ['S', 'A', 'T', 'Delta', 'Y0', 'Y1']].copy()
 
         return df, df_observed
     

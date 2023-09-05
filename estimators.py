@@ -127,8 +127,8 @@ def est_surv(df, cov_list, tte_model):
                         Stmin = Fb_Y[f'St_S{s}_A{a}'].min()
                         step_size = (1 - Stmin) / tmax
 
-#                         Fb_Y[f'St_S{s}_A{a}_misspec'] =\
-#                         np.array(list(map(lambda c: np.maximum((1 - c * step_size), 0.01), Fb_Y[f't_S{s}_A{a}'])))
+                        #Fb_Y[f'St_S{s}_A{a}_misspec'] =\
+                        #np.array(list(map(lambda c: np.maximum((1 - c * step_size), 0.01), Fb_Y[f't_S{s}_A{a}'])))
                         Fb_Y[f'St_S{s}_A{a}_misspec'] = 0.5 * np.ones(len(Fb_Y[f't_S{s}_A{a}']))
                     else:   
                         Fb_Y[f'St_S{s}_A{a}_misspec'] = Fb_Y[f'St_S{s}_A{a}'].copy()
@@ -333,26 +333,28 @@ def cdr_est(df, cov_list, Gb_C, Fb_Y, S, mis_spec):
     for i in range(len(df)):  
         row = df.loc[i]
         
-        if row['S'] == S:  # implement 1{S=s}
-            aind = int(row['A'])
-            psx = S * row['P(S=1|X)'] + (1 - S) * (1 - row['P(S=1|X)'])
-            
-            mu_xsa1 = eval_mu_(S, 1, row[cov_list], Fb_Y, mis_spec) 
-            mu_xsa0 = eval_mu_(S, 0, row[cov_list], Fb_Y, mis_spec)  
-            
-            mu_xs = mu_xsa1 - mu_xsa0  # \mu_S1(X) - \mu_S0(X) is calculated regardless of A=0,1 and goes into CDR
-            mu_xsa = aind * mu_xsa1 + (1 - aind) * mu_xsa0  # \mu_SA(X) for the numerator (Ystar - \mu_SA(X)) with A=aind
-            
-            Ystar = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)  # compute Y* for A=aind
-                            
-            pa_xs = aind * row['P(A=1|X,S)'] + (1 - aind) * (1 - row['P(A=1|X,S)'])    
-        
-            cdr = ((Ystar - mu_xsa) / pa_xs + mu_xs) / psx
+        aind = int(row['A'])
+        psx = S * row['P(S=1|X)'] + (1 - S) * (1 - row['P(S=1|X)'])
 
+        mu_xsa1 = eval_mu_(S, 1, row[cov_list], Fb_Y, mis_spec) 
+        mu_xsa0 = eval_mu_(S, 0, row[cov_list], Fb_Y, mis_spec)  
+
+        mu_xs = mu_xsa1 - mu_xsa0  # \mu_S1(X) - \mu_S0(X) is calculated regardless of A=0,1 and goes into CDR
+        mu_xsa = aind * mu_xsa1 + (1 - aind) * mu_xsa0  # \mu_SA(X) for the numerator (Ystar - \mu_SA(X)) with A=aind
+
+        Ystar = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)  # compute Y* for A=aind
+
+        pa_xs = aind * row['P(A=1|X,S)'] + (1 - aind) * (1 - row['P(A=1|X,S)'])    
+        
+        if row['S'] == S:  # implement 1{S=s}
+            cdr = ((Ystar - mu_xsa) / pa_xs + mu_xs) / psx
         else:
             cdr = 0
 
         df.loc[i, f'S{S}_cdr_Miss_{mis_spec}_est_CATE'] = cdr
+        df.loc[i, f'S{S}_Ystar_Miss_{mis_spec}_est_CATE'] = Ystar
+        df.loc[i, f'S{S}_muxsa0_Miss_{mis_spec}_est_CATE'] = mu_xsa0
+        df.loc[i, f'S{S}_muxsa1_Miss_{mis_spec}_est_CATE'] = mu_xsa1
 
 
 def ipw_est(df, S, baseline):
