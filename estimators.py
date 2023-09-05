@@ -141,7 +141,7 @@ def eval_cond_surv_(y, c, t, St):
         return num / denum 
 
 
-def eval_Qfunc_(s, a, x, T, Fb_Y, thresh=1e-6):
+def eval_Qfunc_(s, a, x, T, Fb_Y, thresh=1e-10):
     '''
     Q function with the ratio method + additional checks for stability
     '''
@@ -161,7 +161,7 @@ def eval_Qfunc_(s, a, x, T, Fb_Y, thresh=1e-6):
         return quad(lambda y : Fb_csax(y,T), a=0, b=t_max, limit=1)[0]
     
     
-def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y):  
+def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y, thresh=1e-10):  
     '''
     Evaluate the Q function for all the "C" values in array Gb_sa_t_idx
     '''
@@ -172,24 +172,29 @@ def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y):
     Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
     
     Fb_denum = np.array(list(map(lambda c: eval_surv_(Fb_sa_t, Fb_sax, c), Gb_sa_t_idx)))
-    
+    thresh_indices = np.where(Fb_denum < thresh)[0]
+        
     t_max = Fb_sa_t.max() # a proxy for the infinity upper bound on the integral
     t_int = np.append(Gb_sa_t_idx, t_max)
     
     func = interp1d(Fb_sa_t, Fb_sax, kind='linear', fill_value='extrapolate')  # Fb(t|X=x,S=s,A=a)
     
     # Calculate individual areas of Integral(Fb(t|..)) between every value in Gb_sa_t_idx and finally to infinity (tmax)
-    
     #interval_integrals = np.array(list(map(lambda c1, c2: quad(func, a=c1, b=c2, limit=1)[0], t_int[:-1], t_int[1:])))
-    # below is WAY faster: other two quads (eval_mu & eval_Qfunc) need not to be replaced they are negligible
     interval_integrals = np.array(list(map(lambda c1, c2: (c2 - c1) * (func(c2) + func(c1)) / 2, t_int[:-1], t_int[1:])))
-    
+    interval_integrals[-1] = quad(func, a=t_int[-2], b=t_int[-1], limit=1)[0]
+
     # Three lines below compute "integrals" which is equal to Fb(c|..) for every c in Gb_sa_t_idx
     shift_cumsum = np.roll(np.cumsum(interval_integrals), 1)
     shift_cumsum[0] = 0  
     Fb_num = np.sum(interval_integrals) - shift_cumsum
     
-    return (Fb_num / Fb_denum) + Gb_sa_t_idx 
+    fin_val = (Fb_num / Fb_denum) + Gb_sa_t_idx
+    
+    if len(thresh_indices) > 0:
+        fin_val[thresh_indices[-1] - 1:] = Gb_sa_t_idx[thresh_indices[-1] - 1:]
+    
+    return fin_val
 
 
 def eval_int_term_(s, a, x, T, Gb_C, Fb_Y):
@@ -227,9 +232,11 @@ def eval_Ystar_(s, a, x, Delta, T, Gb_C, Fb_Y):
     '''
     
     if Delta == 1: # decide the numerator of the first term (ft) based on the value of Delta
-        ft_num = T  
+        ft_num = T
+        ft_num_Fb_misspec = T
     else:
         ft_num = eval_Qfunc_(s, a, x, T, Fb_Y)
+        ft_num_Fb_misspec = np.minimum(0, 5 * np.random.randn())
 
     Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
     Gb_sa_t = Gb_C[f't_S{s}_A{a}']              # t indices for Gb(t|S=s,A=a)
@@ -239,7 +246,12 @@ def eval_Ystar_(s, a, x, Delta, T, Gb_C, Fb_Y):
     ft_denum = eval_surv_(Gb_sa_t, Gb_sax, T)   # first term (ft) denumerator, always uses "T" regardless of the numerator
     
     ft = ft_num / ft_denum # calculate first term (ft)
-    return ft - eval_int_term_(s, a, x, T, Gb_C, Fb_Y)
+    ft_Fb_misspec = ft_num_Fb_misspec / ft_denum
+    
+    Y_star = ft - eval_int_term_(s, a, x, T, Gb_C, Fb_Y)
+    Y_star_Fb_misspec = ft_Fb_misspec - np.minimum(0, 5 * np.random.randn())
+    
+    return Y_star, Y_star_Fb_misspec
 
 
 def eval_mu_(s, a, x, Fb_Y):
@@ -301,17 +313,24 @@ def cdr_est(df, cov_list, Gb_C, Fb_Y, S):
             mu_xsa = aind * mu_xsa1 + (1 - aind) * mu_xsa0  # \mu_SA(X) for the numerator (Ystar - \mu_SA(X)) with A=aind
             
             t2 = time()
-            Ystar_xsa = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y)  # calculate Y* for only A=aind
+            Ystar_xsa, Ystar_xsa_Fb_misspec = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y)  # calculate Y* for only A=aind
               
 #             print(f"mu time: {t2 - t1:.4f}, YSTAR time: {time() - t2:.4f}")       
               
-            pa_xs = aind * row['P(A=1|X,S)'] + (1 - aind) * (1 - row['P(A=1|X,S)'])            
-            cdr = ((Ystar_xsa - mu_xsa) / pa_xs + mu_xs) / psx
+            pa_xs = aind * row['P(A=1|X,S)'] + (1 - aind) * (1 - row['P(A=1|X,S)'])    
+        
+            cdr_true = ((Ystar_xsa - mu_xsa) / pa_xs + mu_xs) / psx
+            cdr_Fb_misspec = ((Ystar_xsa_Fb_misspec - np.minimum(0, 5 * np.random.randn())) / pa_xs + np.minimum(0, 5 * np.random.randn())) / psx
+            cdr_Gb_misspec = ((5 * np.random.randn() - mu_xsa) / pa_xs + mu_xs) / psx
+#             cdr_Fb_misspec = Ystar_xsa / (pa_xs * psx)  
+#             cdr_Gb_misspec = (-(mu_xsa / pa_xs) + mu_xs) / psx
 
         else:
-            cdr = 0
+            cdr_true, cdr_Fb_misspec, cdr_Gb_misspec = 0, 0, 0
 
-        df.loc[i, f'S{S}_cdr_est_CATE'] = cdr
+        df.loc[i, f'S{S}_cdr_est_CATE'] = cdr_true
+        df.loc[i, f'S{S}_cdr_FbMis_est_CATE'] = cdr_Fb_misspec
+        df.loc[i, f'S{S}_cdr_GbMis_est_CATE'] = cdr_Gb_misspec
 
 
 def ipw_est(df, S, baseline):

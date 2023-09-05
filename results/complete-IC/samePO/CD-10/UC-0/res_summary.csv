@@ -1,5 +1,7 @@
 Test,m = 1,m = 2
-IPCW,0.2,0.1
-CDR,0.15,0.1
-IPW-Impute,0.725,0.85
-IPW-Drop,0.45,0.675
+IPCW,0.1,0.0
+CDR,0.2,0.025
+CDR-MissF,0.475,0.6
+CDR-MissG,0.05,0.0
+IPW-Impute,0.75,0.875
+IPW-Drop,0.3,0.15

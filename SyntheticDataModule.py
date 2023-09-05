@@ -170,10 +170,12 @@ class SyntheticDataModule:
             raise NotImplementedError(f'Propensity score method <{self.prop_fn}> is not implemented.')      
     
 
-    def _sample_tte(self, X, type):
+    def _sample_tte(self, X, var_type):
         if self.tte_params['model'] == 'coxph':
             if self.tte_params['hazard'] == 'weibull':
-                return sample_weibull_tte(self.n, self.tte_params['cox_args'][type], X)
+                tte = sample_weibull_tte(self.n, self.tte_params['cox_args'][var_type], X)
+                min_val =  self.tte_params['cox_args'][var_type]['UB']
+                return  tte
             else:
                 raise NotImplementedError(f'Baseline hazard model <{self.tte_params["hazard"]}> is not implemented.')
             
