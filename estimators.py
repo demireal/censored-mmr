@@ -92,11 +92,22 @@ def est_surv(df, cov_list, tte_model):
             # Estimate the survival function for the censoring variable C
             if len(df.query(f'S=={s} & A=={a} & Delta==0')) == 0:  # deal with "lifelines" lib errors 
                 Gb_C[f't_S{s}_A{a}'], Gb_C[f'St_S{s}_A{a}'], Gb_C[f'beta_S{s}_A{a}'] = [-1], [1], np.zeros(len(cov_list))
+                Gb_C[f'St_S{s}_A{a}_misspec'] = [1]
                 
             else:
                 if tte_model == 'coxph':
                     Gb_C[f't_S{s}_A{a}'], Gb_C[f'St_S{s}_A{a}'], Gb_C[f'beta_S{s}_A{a}'] = \
                     coxph_base_surv(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=True) # fit for C 
+                    
+                    if s == 1:
+                        tmax = Gb_C[f't_S{s}_A{a}'].max()
+                        Stmin = Gb_C[f'St_S{s}_A{a}'].min()
+                        step_size = (1 - Stmin) / tmax
+                        
+                        Gb_C[f'St_S{s}_A{a}_misspec'] =\
+                        np.array(list(map(lambda c: np.maximum((1 - c * step_size), 0.01), Gb_C[f't_S{s}_A{a}'])))
+                    else:
+                        Gb_C[f'St_S{s}_A{a}_misspec'] = Gb_C[f'St_S{s}_A{a}'].copy()
                     
                 else:
                     raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
@@ -104,11 +115,23 @@ def est_surv(df, cov_list, tte_model):
             # Estimate the survival function for the time-to-event variable Y
             if len(df.query(f'S=={s} & A=={a} & Delta==1')) == 0:
                 Fb_Y[f't_S{s}_A{a}'], Fb_Y[f'St_S{s}_A{a}'], Fb_Y[f'beta_S{s}_A{a}'] = [-1], [1], np.zeros(len(cov_list))
+                Fb_Y[f'St_S{s}_A{a}_misspec'] = [1]
                 
             else:
                 if tte_model == 'coxph':
                     Fb_Y[f't_S{s}_A{a}'], Fb_Y[f'St_S{s}_A{a}'], Fb_Y[f'beta_S{s}_A{a}'] = \
                     coxph_base_surv(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=False) # fit for Y
+                    
+                    if s == 1:                
+                        tmax = Fb_Y[f't_S{s}_A{a}'].max()
+                        Stmin = Fb_Y[f'St_S{s}_A{a}'].min()
+                        step_size = (1 - Stmin) / tmax
+
+#                         Fb_Y[f'St_S{s}_A{a}_misspec'] =\
+#                         np.array(list(map(lambda c: np.maximum((1 - c * step_size), 0.01), Fb_Y[f't_S{s}_A{a}'])))
+                        Fb_Y[f'St_S{s}_A{a}_misspec'] = 0.5 * np.ones(len(Fb_Y[f't_S{s}_A{a}']))
+                    else:   
+                        Fb_Y[f'St_S{s}_A{a}_misspec'] = Fb_Y[f'St_S{s}_A{a}'].copy()
                     
                 else:
                     raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
@@ -141,15 +164,19 @@ def eval_cond_surv_(y, c, t, St):
         return num / denum 
 
 
-def eval_Qfunc_(s, a, x, T, Fb_Y, thresh=1e-10):
+def eval_Qfunc_(s, a, x, T, Fb_Y, mis_spec, thresh=1e-10):
     '''
     Q function with the ratio method + additional checks for stability
     '''
     
-    Fb_sa = Fb_Y[f'St_S{s}_A{a}']               # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
-    Fb_sa_t = Fb_Y[f't_S{s}_A{a}']              # t indices for Fb(t|S=s,A=a)
-    Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Fb(t|X,S=s,A=a)
-    Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
+    Fb_sa_t = Fb_Y[f't_S{s}_A{a}']                  # t indices for Fb(t|S=s,A=a)
+    
+    if mis_spec == 'Fb':
+        Fb_sax = Fb_Y[f'St_S{s}_A{a}_misspec'] 
+    else:
+        Fb_sa = Fb_Y[f'St_S{s}_A{a}']               # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Fb(t|X,S=s,A=a)
+        Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
     
     norm = eval_surv_(Fb_sa_t, Fb_sax, T) # normalization constant F(T|X,S,A)
     t_max = Fb_sa_t.max()
@@ -158,18 +185,22 @@ def eval_Qfunc_(s, a, x, T, Fb_Y, thresh=1e-10):
         return T 
     else:
         Fb_csax = lambda yy, cc : eval_cond_surv_(yy, cc, Fb_sa_t, Fb_sax)  # Fb(t|X=x,Y>cc,S=s,A=a) = P(Y>t|X=x,Y>cc,S=s,A=a)
-        return quad(lambda y : Fb_csax(y,T), a=0, b=t_max, limit=1)[0]
+        return quad(lambda y : Fb_csax(y, T), a=0, b=t_max, limit=1)[0]
     
     
-def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y, thresh=1e-10):  
+def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y, mis_spec, thresh=1e-10):  
     '''
     Evaluate the Q function for all the "C" values in array Gb_sa_t_idx
     '''
     
-    Fb_sa = Fb_Y[f'St_S{s}_A{a}']               # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
-    Fb_sa_t = Fb_Y[f't_S{s}_A{a}']              # t indices for Fb(t|S=s,A=a)
-    Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Fb(t|X,S=s,A=a)
-    Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
+    Fb_sa_t = Fb_Y[f't_S{s}_A{a}']                  # t indices for Fb(t|S=s,A=a)
+    
+    if mis_spec == 'Fb':
+        Fb_sax = Fb_Y[f'St_S{s}_A{a}_misspec'] 
+    else:
+        Fb_sa = Fb_Y[f'St_S{s}_A{a}']               # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Fb(t|X,S=s,A=a)
+        Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
     
     Fb_denum = np.array(list(map(lambda c: eval_surv_(Fb_sa_t, Fb_sax, c), Gb_sa_t_idx)))
     thresh_indices = np.where(Fb_denum < thresh)[0]
@@ -177,7 +208,7 @@ def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y, thresh=1e-10):
     t_max = Fb_sa_t.max() # a proxy for the infinity upper bound on the integral
     t_int = np.append(Gb_sa_t_idx, t_max)
     
-    func = interp1d(Fb_sa_t, Fb_sax, kind='linear', fill_value='extrapolate')  # Fb(t|X=x,S=s,A=a)
+    func = interp1d(Fb_sa_t, Fb_sax, kind='nearest', fill_value='extrapolate')  # Fb(t|X=x,S=s,A=a)
     
     # Calculate individual areas of Integral(Fb(t|..)) between every value in Gb_sa_t_idx and finally to infinity (tmax)
     #interval_integrals = np.array(list(map(lambda c1, c2: quad(func, a=c1, b=c2, limit=1)[0], t_int[:-1], t_int[1:])))
@@ -197,7 +228,7 @@ def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y, thresh=1e-10):
     return fin_val
 
 
-def eval_int_term_(s, a, x, T, Gb_C, Fb_Y):
+def eval_int_term_(s, a, x, T, Gb_C, Fb_Y, mis_spec):
     
     Gb_sa_t = Gb_C[f't_S{s}_A{a}']        # t indices for Gb(t|S=s,A=a)
     eval_idx = np.where(Gb_sa_t < T)[0]   # indices to evaluate the integral for
@@ -206,26 +237,25 @@ def eval_int_term_(s, a, x, T, Gb_C, Fb_Y):
         return 0    
 
     else:
-        Gb_sa_t_idx = Gb_sa_t[eval_idx].copy()
-        Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
-        Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Gb(t|X,S=s,A=a)
-        Gb_sax = Gb_sa ** (np.exp(Gb_sa_beta @ x))  # Gb(t|X=x,S=s,A=a) = P(C>t|X=x,S=s,A=a)
+        if mis_spec == 'Gb':
+            Gb_sax = Gb_C[f'St_S{s}_A{a}_misspec']  
+        else:
+            Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
+            Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Gb(t|X,S=s,A=a)
+            Gb_sax = Gb_sa ** (np.exp(Gb_sa_beta @ x))  # Gb(t|X=x,S=s,A=a) = P(C>t|X=x,S=s,A=a)           
         
+        Gb_sa_t_idx = Gb_sa_t[eval_idx].copy()
         Gb_sax_idx = Gb_sax[eval_idx].copy()
-     
-        start_time = time()
     
         G_sax_idx = 1 - Gb_sax_idx
         dG_sax_idx = [b - a for a, b in zip(np.insert(G_sax_idx, 0, 0), np.insert(G_sax_idx, 0, 0)[1:])]    
-        Q_num = eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y)
+        Q_num = eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y, mis_spec)
         Gbsq_denum = np.array(list(map(lambda c: eval_surv_(Gb_sa_t, Gb_sax, c) ** 2, Gb_sa_t_idx)))
-        
-        #print('Time elapsed for computing the integral term: {:.2f}'.format(time() - start_time))
-        
+               
         return np.sum(dG_sax_idx * Q_num / Gbsq_denum)            
     
 
-def eval_Ystar_(s, a, x, Delta, T, Gb_C, Fb_Y):
+def eval_Ystar_(s, a, x, Delta, T, Gb_C, Fb_Y, mis_spec):
     '''
     Evaluate Y*_SA(X,Y,C)
     Note that T = min(Y,C), and it is enough for the calculation of this signal.
@@ -233,37 +263,38 @@ def eval_Ystar_(s, a, x, Delta, T, Gb_C, Fb_Y):
     
     if Delta == 1: # decide the numerator of the first term (ft) based on the value of Delta
         ft_num = T
-        ft_num_Fb_misspec = T
     else:
-        ft_num = eval_Qfunc_(s, a, x, T, Fb_Y)
-        ft_num_Fb_misspec = np.minimum(0, 5 * np.random.randn())
+        ft_num = eval_Qfunc_(s, a, x, T, Fb_Y, mis_spec)
 
-    Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
-    Gb_sa_t = Gb_C[f't_S{s}_A{a}']              # t indices for Gb(t|S=s,A=a)
-    Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Gb(t|X,S=s,A=a)
-    Gb_sax = Gb_sa ** (np.exp(Gb_sa_beta @ x))  # Gb(t|X=x,S=s,A=a) = P(C>t|X=x,S=s,A=a)  
-    
-    ft_denum = eval_surv_(Gb_sa_t, Gb_sax, T)   # first term (ft) denumerator, always uses "T" regardless of the numerator
-    
+    Gb_sa_t = Gb_C[f't_S{s}_A{a}']                  # t indices for Gb(t|S=s,A=a)
+    if mis_spec == 'Gb':
+        Gb_sax = Gb_C[f'St_S{s}_A{a}_misspec']  
+    else:
+        Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
+        Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Gb(t|X,S=s,A=a)
+        Gb_sax = Gb_sa ** (np.exp(Gb_sa_beta @ x))  # Gb(t|X=x,S=s,A=a) = P(C>t|X=x,S=s,A=a)              
+
+    ft_denum = eval_surv_(Gb_sa_t, Gb_sax, T)   # first term denumerator, always uses "T" regardless of the numerator
     ft = ft_num / ft_denum # calculate first term (ft)
-    ft_Fb_misspec = ft_num_Fb_misspec / ft_denum
     
-    Y_star = ft - eval_int_term_(s, a, x, T, Gb_C, Fb_Y)
-    Y_star_Fb_misspec = ft_Fb_misspec - np.minimum(0, 5 * np.random.randn())
-    
-    return Y_star, Y_star_Fb_misspec
+    return ft - eval_int_term_(s, a, x, T, Gb_C, Fb_Y, mis_spec)
 
 
-def eval_mu_(s, a, x, Fb_Y):
+def eval_mu_(s, a, x, Fb_Y, mis_spec):
     '''
     Evaluate \mu_SA(X)
     '''
-    Fb_sa = Fb_Y[f'St_S{s}_A{a}']               # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
-    Fb_sa_t = Fb_Y[f't_S{s}_A{a}']              # t indices for Fb(t|S=s,A=a)
-    Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Fb(t|X,S=s,A=a) 
-    Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
+    
+    Fb_sa_t = Fb_Y[f't_S{s}_A{a}']                  # t indices for Fb(t|S=s,A=a)
+    
+    if mis_spec == 'Fb':
+        Fb_sax = Fb_Y[f'St_S{s}_A{a}_misspec'] 
+    else:
+        Fb_sa = Fb_Y[f'St_S{s}_A{a}']               # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Fb(t|X,S=s,A=a)
+        Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))  # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
         
-    func = interp1d(Fb_sa_t, Fb_sax, kind='nearest-up', fill_value='extrapolate')
+    func = interp1d(Fb_sa_t, Fb_sax, kind='nearest', fill_value='extrapolate')
     return quad(func, a=0, b=Fb_sa_t.max(), limit=1)[0]    
 
 
@@ -297,7 +328,7 @@ def ipcw_est(df, S):
         df.loc[i, f'S{S}_ipcw_est_Y0'] = - (1 - row['A']) * ipcw
         
 
-def cdr_est(df, cov_list, Gb_C, Fb_Y, S):
+def cdr_est(df, cov_list, Gb_C, Fb_Y, S, mis_spec):
 
     for i in range(len(df)):  
         row = df.loc[i]
@@ -306,31 +337,22 @@ def cdr_est(df, cov_list, Gb_C, Fb_Y, S):
             aind = int(row['A'])
             psx = S * row['P(S=1|X)'] + (1 - S) * (1 - row['P(S=1|X)'])
             
-            t1 = time()
-            mu_xsa1 = eval_mu_(S, 1, row[cov_list], Fb_Y) 
-            mu_xsa0 = eval_mu_(S, 0, row[cov_list], Fb_Y)  
+            mu_xsa1 = eval_mu_(S, 1, row[cov_list], Fb_Y, mis_spec) 
+            mu_xsa0 = eval_mu_(S, 0, row[cov_list], Fb_Y, mis_spec)  
+            
             mu_xs = mu_xsa1 - mu_xsa0  # \mu_S1(X) - \mu_S0(X) is calculated regardless of A=0,1 and goes into CDR
             mu_xsa = aind * mu_xsa1 + (1 - aind) * mu_xsa0  # \mu_SA(X) for the numerator (Ystar - \mu_SA(X)) with A=aind
             
-            t2 = time()
-            Ystar_xsa, Ystar_xsa_Fb_misspec = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y)  # calculate Y* for only A=aind
-              
-#             print(f"mu time: {t2 - t1:.4f}, YSTAR time: {time() - t2:.4f}")       
-              
+            Ystar = eval_Ystar_(S, aind, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)  # compute Y* for A=aind
+                            
             pa_xs = aind * row['P(A=1|X,S)'] + (1 - aind) * (1 - row['P(A=1|X,S)'])    
         
-            cdr_true = ((Ystar_xsa - mu_xsa) / pa_xs + mu_xs) / psx
-            cdr_Fb_misspec = ((Ystar_xsa_Fb_misspec - np.minimum(0, 5 * np.random.randn())) / pa_xs + np.minimum(0, 5 * np.random.randn())) / psx
-            cdr_Gb_misspec = ((5 * np.random.randn() - mu_xsa) / pa_xs + mu_xs) / psx
-#             cdr_Fb_misspec = Ystar_xsa / (pa_xs * psx)  
-#             cdr_Gb_misspec = (-(mu_xsa / pa_xs) + mu_xs) / psx
+            cdr = ((Ystar - mu_xsa) / pa_xs + mu_xs) / psx
 
         else:
-            cdr_true, cdr_Fb_misspec, cdr_Gb_misspec = 0, 0, 0
+            cdr = 0
 
-        df.loc[i, f'S{S}_cdr_est_CATE'] = cdr_true
-        df.loc[i, f'S{S}_cdr_FbMis_est_CATE'] = cdr_Fb_misspec
-        df.loc[i, f'S{S}_cdr_GbMis_est_CATE'] = cdr_Gb_misspec
+        df.loc[i, f'S{S}_cdr_Miss_{mis_spec}_est_CATE'] = cdr
 
 
 def ipw_est(df, S, baseline):
@@ -397,8 +419,16 @@ def fill_nuisance(df_combined, df_comb_drop, jD):
         ipw_est(df_combined, S=1, baseline='impute')  # censored observations are IMPUTED
         
     if any("CDR" in key for key in jD['test_signals'].keys()):
-        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=0)  
-        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=1)  
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=0, mis_spec='None')  
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=1, mis_spec='None')  
+        
+    if any("CDR-MissF" in key for key in jD['test_signals'].keys()):
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=0, mis_spec='Fb')  
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=1, mis_spec='Fb')
+        
+    if any("CDR-MissG" in key for key in jD['test_signals'].keys()):
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=0, mis_spec='Gb')  
+        cdr_est(df_combined, jD['cov_list'], Gb_C, Fb_Y, S=1, mis_spec='Gb')    
     
     # Estimate the nuisance parameters for the combined dataframe with censored observations dropped
     
@@ -412,6 +442,7 @@ def fill_nuisance(df_combined, df_comb_drop, jD):
         ipw_est(df_comb_drop, S=1, baseline='drop')  # censored observations are DROPPED
         
     return Fb_Y, Gb_C
+
 
 def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE'):
     n = len(df)
