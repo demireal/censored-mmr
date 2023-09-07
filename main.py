@@ -21,6 +21,7 @@ from time import sleep, time
 from SyntheticDataModule import *
 from estimators import *
 from utils import *
+from mmr_utils import *
 
 
 parser = argparse.ArgumentParser()
