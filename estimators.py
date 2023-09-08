@@ -57,6 +57,7 @@ def mu_est_baseline(df, target, feature, model_name='XGboost'):
     @return:
         predictions
     '''
+    
     X = df[feature]  # Features
     y = df[target]  # Target variable
     
