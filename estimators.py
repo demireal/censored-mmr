@@ -103,7 +103,7 @@ def coxph_base_surv(df, cov_list, flip=False):
     return t_event, np.array(est_base_surv).reshape(-1), np.array(cph_params)  
 
     
-def est_surv(df, cov_list, tte_model):
+def est_surv(df, tte_model, jD):
     '''
     Estimate the survival function for the censoring time C and the time-to-event outcome Y
     
@@ -118,15 +118,22 @@ def est_surv(df, cov_list, tte_model):
 
     Fb_Y = {}  # dictionary for TimeToEvent (Y) baseline survival estimate  
     Gb_C = {}  # dictionary for CensoringTime (C) baseline survival estimate 
+    cov_list = jD['cov_list']
         
     for s in range(2):
         for a in range(2):
             
             # Estimate the survival function for the censoring variable C
             if len(df.query(f'S=={s} & A=={a} & Delta==0')) == 0:  # deal with "lifelines" lib errors 
+                
                 Gb_C[f't_S{s}_A{a}'], Gb_C[f'St_S{s}_A{a}'], Gb_C[f'beta_S{s}_A{a}'] = [-1], [1], np.zeros(len(cov_list))
+                
                 Gb_C[f'St_S{s}_A{a}_misspec'] = [1]
                 Gb_C[f'beta_S{s}_A{a}_misspec'] = np.zeros(len(cov_list))
+                
+                Gb_C[f'St_S{s}_A{a}_true'] = [1]
+                Gb_C[f'beta_S{s}_A{a}_true'] = np.zeros(len(cov_list))
+                
                 
             else:
                 if tte_model == 'coxph':
@@ -140,16 +147,24 @@ def est_surv(df, cov_list, tte_model):
                     Gb_C[f'St_S{s}_A{a}_misspec'] =\
                     np.array(list(map(lambda c: np.maximum((1 - c * step_size), 0.01), Gb_C[f't_S{s}_A{a}'])))
                     
-                    Gb_C[f'beta_S{s}_A{a}_misspec'] = np.random.rand(len(cov_list)) - 0.5
+                    Gb_C[f'beta_S{s}_A{a}_misspec'] = np.zeros(len(cov_list))
+                    
+                    Gb_C[f'St_S{s}_A{a}_true'], Gb_C[f'beta_S{s}_A{a}_true'] =\
+                    get_oracle_surv(Gb_C[f't_S{s}_A{a}'], jD, s, f'C{a}')
                     
                 else:
                     raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
                     
             # Estimate the survival function for the time-to-event variable Y
             if len(df.query(f'S=={s} & A=={a} & Delta==1')) == 0:
+                
                 Fb_Y[f't_S{s}_A{a}'], Fb_Y[f'St_S{s}_A{a}'], Fb_Y[f'beta_S{s}_A{a}'] = [-1], [1], np.zeros(len(cov_list))
+                
                 Fb_Y[f'St_S{s}_A{a}_misspec'] = [1]
                 Fb_Y[f'beta_S{s}_A{a}_misspec'] = np.zeros(len(cov_list))
+                
+                Fb_Y[f'St_S{s}_A{a}_true'] = [1]
+                Fb_Y[f'beta_S{s}_A{a}_true'] = np.zeros(len(cov_list))
                 
             else:
                 if tte_model == 'coxph':
@@ -163,9 +178,12 @@ def est_surv(df, cov_list, tte_model):
                     Fb_Y[f'St_S{s}_A{a}_misspec'] =\
                     np.array(list(map(lambda c: np.maximum((1 - c * step_size), 0.01), Fb_Y[f't_S{s}_A{a}'])))
                     
-                    Fb_Y[f'beta_S{s}_A{a}_misspec'] = np.random.rand(len(cov_list)) - 0.5
+                    Fb_Y[f'beta_S{s}_A{a}_misspec'] = np.zeros(len(cov_list))
+                    
+                    Fb_Y[f'St_S{s}_A{a}_true'], Fb_Y[f'beta_S{s}_A{a}_true'] =\
+                    get_oracle_surv(Fb_Y[f't_S{s}_A{a}'], jD, s, f'Y{a}')
                     
                 else:
                     raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
                     
-    return Gb_C, Fb_Y 
+    return Gb_C, Fb_Y

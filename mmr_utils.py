@@ -11,6 +11,7 @@ from scipy.interpolate import interp1d
 from sklearn.metrics.pairwise import rbf_kernel, laplacian_kernel
 
 from estimators import *
+from utils import *
 
 
 def eval_surv_(t, St, T):
@@ -47,7 +48,10 @@ def eval_Qfunc_(s, a, x, T, Fb_Y, mis_spec, thresh=1e-10):
     
     if mis_spec == 'Fb':
         Fb_sa = Fb_Y[f'St_S{s}_A{a}_misspec']         # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
-        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_misspec']  # CoxPH param. estimates for Fb(t|X,S=s,A=a)      
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_misspec']  # CoxPH param. estimates for Fb(t|X,S=s,A=a)   
+    elif mis_spec == 'Gb':
+        Fb_sa = Fb_Y[f'St_S{s}_A{a}_true'] 
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_true']
     else:
         Fb_sa = Fb_Y[f'St_S{s}_A{a}']
         Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}'] 
@@ -74,6 +78,9 @@ def eval_Qfunc_arr_(s, a, x, Gb_sa_t_idx, Fb_Y, mis_spec, thresh=1e-10):
     if mis_spec == 'Fb':
         Fb_sa = Fb_Y[f'St_S{s}_A{a}_misspec']         # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
         Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_misspec']  # CoxPH param. estimates for Fb(t|X,S=s,A=a)      
+    elif mis_spec == 'Gb':
+        Fb_sa = Fb_Y[f'St_S{s}_A{a}_true'] 
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_true']
     else:
         Fb_sa = Fb_Y[f'St_S{s}_A{a}']
         Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}'] 
@@ -116,6 +123,9 @@ def eval_int_term_(s, a, x, T, Gb_C, Fb_Y, mis_spec):
         if mis_spec == 'Gb':
             Gb_sa = Gb_C[f'St_S{s}_A{a}_misspec']  
             Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}_misspec'] 
+        elif mis_spec == 'Fb':
+            Gb_sa = Gb_C[f'St_S{s}_A{a}_true'] 
+            Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}_true']
         else:
             Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
             Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Gb(t|X,S=s,A=a)
@@ -149,6 +159,9 @@ def eval_Ystar_(s, a, x, Delta, T, Gb_C, Fb_Y, mis_spec):
     if mis_spec == 'Gb':
         Gb_sa = Gb_C[f'St_S{s}_A{a}_misspec']  
         Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}_misspec'] 
+    elif mis_spec == 'Fb':
+        Gb_sa = Gb_C[f'St_S{s}_A{a}_true'] 
+        Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}_true']
     else:
         Gb_sa = Gb_C[f'St_S{s}_A{a}']               # Gb(t|S=s,A=a) = P(C>t|S=s,A=a) (baseline survival function for C)
         Gb_sa_beta = Gb_C[f'beta_S{s}_A{a}']        # CoxPH param. estimates for Gb(t|X,S=s,A=a)
@@ -170,14 +183,17 @@ def eval_mu_(s, a, x, Fb_Y, mis_spec):
     
     if mis_spec == 'Fb':
         Fb_sa = Fb_Y[f'St_S{s}_A{a}_misspec']         # Fb(t|S=s,A=a) = P(Y>t|S=s,A=a) (baseline survival function for Y)
-        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_misspec']  # CoxPH param. estimates for Fb(t|X,S=s,A=a)      
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_misspec']  # CoxPH param. estimates for Fb(t|X,S=s,A=a) 
+    elif mis_spec == 'Gb':
+        Fb_sa = Fb_Y[f'St_S{s}_A{a}_true'] 
+        Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}_true']
     else:
         Fb_sa = Fb_Y[f'St_S{s}_A{a}']
         Fb_sa_beta = Fb_Y[f'beta_S{s}_A{a}'] 
         
     Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))        # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
         
-    func = interp1d(Fb_sa_t, Fb_sax, kind='nearest', fill_value='extrapolate')
+    func = interp1d(Fb_sa_t, Fb_sax, kind='linear', fill_value='extrapolate')
     return quad(func, a=0, b=Fb_sa_t.max(), limit=1)[0]    
 
 
@@ -247,20 +263,35 @@ def cdr_est(df, cov_list, Gb_C, Fb_Y, S, mis_spec):
         
         if row['S'] == S:  # 1{S=s}
             aind = int(row['A'])
-
-            pa1_xs = row['P(A=1|X,S)']  
-            pa0_xs = (1 - row['P(A=1|X,S)'])  
+            sind = int(row['S'])
+            
+            if mis_spec == 'Gb':
+                pa1_xs = 0.5
+                pa0_xs = 0.5    
+            else:
+                pa1_xs = row['P(A=1|X,S)']  
+                pa0_xs = (1 - row['P(A=1|X,S)'])                
 
             mu_xsa1 = eval_mu_(S, 1, row[cov_list], Fb_Y, mis_spec) 
             mu_xsa0 = eval_mu_(S, 0, row[cov_list], Fb_Y, mis_spec)
 
-            Ystar1 = eval_Ystar_(S, 1, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)
-            Ystar0 = eval_Ystar_(S, 0, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)
+            mu_diff = mu_xsa1 - mu_xsa0
+            
+            if aind == 1:
+                ystar_1 = eval_Ystar_(S, 1, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)
+                part1 = (ystar_1 - mu_xsa1) / pa1_xs
+            else:
+                ystar_0 = eval_Ystar_(S, 0, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)
+                part1 = -(ystar_0 - mu_xsa0) / pa0_xs
 
-            part1 = aind * (Ystar1 - mu_xsa1) / pa1_xs + mu_xsa1
-            part0 = (1 - aind) * (Ystar0 - mu_xsa0) / pa0_xs + mu_xsa0
-            overall = part1 - part0
-         
+            overall = part1 + mu_diff
+            
+#             Ystar1 = eval_Ystar_(S, 1, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)
+#             Ystar0 = eval_Ystar_(S, 0, row[cov_list], row['Delta'], row['T'], Gb_C, Fb_Y, mis_spec)
+#             part1 = aind * (Ystar1 - mu_xsa1) / pa1_xs + mu_xsa1
+#             part0 = (1 - aind) * (Ystar0 - mu_xsa0) / pa0_xs + mu_xsa0
+#             overall = part1 - part0
+            
             psx = S * row['P(S=1|X)'] + (1 - S) * (1 - row['P(S=1|X)'])
             cdr = overall / psx
                 
@@ -298,25 +329,6 @@ def dr_est(df, S, baseline):
                 
         else:
             dr = 0
-
-#         aind = int(row['A'])
-#         sind = int(row['S'])
-        
-#         Y = row['T']
-        
-#         ps1x = S * row['P(S=1|X)']
-#         ps0x = 1 - ps1x
-
-#         pa1_xs = row['P(A=1|X,S)']  
-#         pa0_xs = (1 - pa1_xs)  
-
-#         mu_xsa1 = row['mu(Y|X,S,A=1)'] 
-#         mu_xsa0 = row['mu(Y|X,S,A=0)'] 
-        
-#         part1 = (1 - sind) * (mu_xsa1 - mu_xsa0) / ps0x 
-#         part2 =  (sind / ps1x) * ((aind * (Y - mu_xsa1) / pa1_xs) - ((1 - aind) * (Y - mu_xsa0) / pa0_xs))
-        
-#         dr = part1 - part2
 
         df.loc[i, f'S{S}_{baseline}_dr_est_CATE'] = dr
         
@@ -356,7 +368,7 @@ def est_nuisance(df_combined, df_comb_drop, jD):
         df_combined.loc[df_combined.S==sind, 'mu(Y|X,S,A=1)'] =\
             mu_regressor[f'S{sind}_A1'].predict(df_combined.loc[df_combined.S==sind, jD['cov_list']])
 
-    Gb_C, Fb_Y = est_surv(df_combined,  jD['cov_list'], tte_model='coxph')
+    Gb_C, Fb_Y = est_surv(df_combined, 'coxph', jD)
     df_combined['Gb(T|X,S,A)'] = df_combined.apply(lambda r:\
      eval_surv_(Gb_C[f"t_S{int(r['S'])}_A{int(r['A'])}"], Gb_C[f"St_S{int(r['S'])}_A{int(r['A'])}"], r['T']), axis=1)
 
@@ -455,7 +467,7 @@ def mmr_run(d, os_size, kernel, jD):
         if jD['crop_prop'] and ('Drop' not in key):
             df_mmr = df_mmr[(0.05 < df_mmr['P(S=1|X)']) & (df_mmr['P(S=1|X)'] < 0.95) &\
                     (0.05 < df_mmr['P(A=1|X,S)']) & (df_mmr['P(A=1|X,S)'] < 0.95) &\
-                    (0.05 < df_mmr['Gb(T|X,S,A)'])].copy().reset_index(drop=True)
+                    (1e-4 < df_mmr['Gb(T|X,S,A)'])].copy().reset_index(drop=True)
             
         if jD['crop_prop'] and ('Drop' in key):
             df_mmr = df_mmr[(0.05 < df_mmr['P(S=1|X)']) & (df_mmr['P(S=1|X)'] < 0.95) &\
