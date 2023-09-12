@@ -10,9 +10,8 @@
     "num_exp": 2,
     
     "RCT":  
-
         {    
-        "px_cols": ["bw", "b.head", "preterm",  "birth.o" ,"nnhealth", "momage", "sex", "twin", "b.marr", "momship"],
+        "px_cols": ["bw", "b.head", "preterm",  "birth.o" ,"nnhealth", "momage", "sex", "twin", "b.marr", "momhisp"],
         "prop_fn":    "sigmoid",
         "prop_args":  {"beta": [0, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]},
         "tte_params": {"model": "coxph",
@@ -30,7 +29,7 @@
     "OS":  
 
         {    
-        "px_cols": ["bw", "b.head", "preterm",  "birth.o" ,"nnhealth", "momage", "sex", "twin", "b.marr", "momship"],
+        "px_cols": ["bw", "b.head", "preterm",  "birth.o" ,"nnhealth", "momage", "sex", "twin", "b.marr", "momhisp"],
         "prop_fn":    "sigmoid",
         "prop_args":  {"beta": [-0.5, 0.4, -0.2, 0.5, 0, -0.4, 0.2, -0.75, -0.2, -0.8, 0]},
         "tte_params": {"model": "coxph",

@@ -7,11 +7,13 @@ import os
 import statsmodels.api as sm
 from utils import *
 
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 CONT_COLS = ["bw", "b.head", "preterm",  "birth.o" ,"nnhealth", "momage"]
 
 DISCRETE_COLS = ["sex", "twin", "b.marr", "mom.lths", "mom.hs", "mom.scoll",
                  "cig", "first", "booze", "drugs", "work.dur", "prenatal", "ark",
-                 "ein", "har", "mia", "pen", "tex", "was", "momwhite", "momblack", "momship"]
+                 "ein", "har", "mia", "pen", "tex", "was", "momwhite", "momblack", "momhisp"]
 
 class IHDPDataModule:
     '''
@@ -47,9 +49,9 @@ class IHDPDataModule:
                                     # (for Cox model, keep first term of beta 0 always to not run into errors later with libraries)
                                     # (same effect can be achieved via lambda&p anyways)
 
-        self.df_save_dir = f'./data/ihdp/S{self.S}/csv'  # directory to save the DataFrames
-        self.fig_save_dir = f'./data/ihdp/S{self.S}/figures'  # directory to save the figures
-        self.df_load_dir = f"./data/ihdp/ihdp.csv"
+        self.df_save_dir = os.path.join(DATA_DIR,f'ihdp/S{self.S}/csv')  # directory to save the DataFrames
+        self.fig_save_dir = os.path.join(DATA_DIR,f'ihdp/S{self.S}/figures')  # directory to save the figures
+        self.df_load_dir = os.path.join(DATA_DIR,f"ihdp/ihdp.csv")
         self.cov_list = [f'X{i}' for i in range(d+1)]
 
         self.df, self.df_observed = self._generate_data()
