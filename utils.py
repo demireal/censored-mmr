@@ -50,15 +50,11 @@ def read_json(json_path, d, uc, sigs_to_keep):
         except json.JSONDecodeError:
             print("Invalid JSON format in the input file.")
 
-    assert jD['num_cov'] == len(jD['RCT']['px_args']['mean']) \
-                         == len(jD['RCT']['px_args']['cov']) \
-                         == len(jD['RCT']['prop_args']['beta']) - 1\
+    assert jD['num_cov'] == len(jD['RCT']['prop_args']['beta']) - 1\
                          == len(jD['RCT']['tte_params']['cox_args']['Y0']['beta']) - 1 \
                          == len(jD['RCT']['tte_params']['cox_args']['Y1']['beta']) - 1 \
                          == len(jD['RCT']['tte_params']['cox_args']['C0']['beta']) - 1 \
                          == len(jD['RCT']['tte_params']['cox_args']['C1']['beta']) - 1 \
-                         == len(jD['OS']['px_args']['mean']) \
-                         == len(jD['OS']['px_args']['cov']) \
                          == len(jD['OS']['prop_args']['beta']) - 1 \
                          == len(jD['OS']['tte_params']['cox_args']['Y0']['beta']) - 1 \
                          == len(jD['OS']['tte_params']['cox_args']['Y1']['beta']) - 1 \
@@ -66,18 +62,34 @@ def read_json(json_path, d, uc, sigs_to_keep):
                          == len(jD['OS']['tte_params']['cox_args']['C1']['beta']) - 1 \
                     , "Check covariate dimensions."
     
+    if "px_cols" in jD['RCT']:
+        assert jD['num_cov'] == len(jD['RCT']['px_cols']) \
+                             == len(jD['OS']['px_cols']) 
+    else:
+        assert jD['num_cov'] == len(jD['RCT']['px_args']['mean']) \
+                             == len(jD['RCT']['px_args']['cov']) \
+                             == len(jD['OS']['px_args']['mean']) \
+                             == len(jD['OS']['px_args']['cov']) , "Check covariate dimensions."
+    
     jD_new = jD.copy()
     
-    jD_new['RCT']['px_args']['mean'] = jD['RCT']['px_args']['mean'][:d]
-    jD_new['RCT']['px_args']['cov'] = np.array(jD['RCT']['px_args']['cov'])[:d, :d]
+    if "px_cols" in jD["RCT"]:
+        jD_new['RCT']['px_cols'] = jD['RCT']['px_cols'][:d]
+        jD_new['OS']['px_cols'] = jD['OS']['px_cols'][:d]
+    else:
+        jD_new['RCT']['px_args']['mean'] = jD['RCT']['px_args']['mean'][:d]
+        jD_new['RCT']['px_args']['cov'] = np.array(jD['RCT']['px_args']['cov'])[:d, :d]
+
+        jD_new['OS']['px_args']['mean'] = jD['OS']['px_args']['mean'][:d]
+        jD_new['OS']['px_args']['cov'] = np.array(jD['OS']['px_args']['cov'])[:d, :d]
+    
     jD_new['RCT']['prop_args']['beta'] = jD['RCT']['prop_args']['beta'][:d+1]
     jD_new['RCT']['tte_params']['cox_args']['Y0']['beta'] = jD['RCT']['tte_params']['cox_args']['Y0']['beta'][:d+1]
     jD_new['RCT']['tte_params']['cox_args']['Y1']['beta'] = jD['RCT']['tte_params']['cox_args']['Y1']['beta'][:d+1]
     jD_new['RCT']['tte_params']['cox_args']['C0']['beta'] = jD['RCT']['tte_params']['cox_args']['C0']['beta'][:d+1]
     jD_new['RCT']['tte_params']['cox_args']['C1']['beta'] = jD['RCT']['tte_params']['cox_args']['C1']['beta'][:d+1]
     
-    jD_new['OS']['px_args']['mean'] = jD['OS']['px_args']['mean'][:d]
-    jD_new['OS']['px_args']['cov'] = np.array(jD['OS']['px_args']['cov'])[:d, :d]
+
     jD_new['OS']['prop_args']['beta'] = jD['OS']['prop_args']['beta'][:d+1]
     jD_new['OS']['tte_params']['cox_args']['Y0']['beta'] = jD['OS']['tte_params']['cox_args']['Y0']['beta'][:d+1]
     jD_new['OS']['tte_params']['cox_args']['Y1']['beta'] = jD['OS']['tte_params']['cox_args']['Y1']['beta'][:d+1]
