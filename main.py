@@ -51,7 +51,8 @@ for cov_dim in args.CD:
             start_time = time()
             os_size = jD['rct_size'] * m 
 
-            max_jobs = cpu_count()
+            max_jobs = 1#cpu_count()
+
             local_mmr_results = Parallel(n_jobs=max_jobs)(delayed(mmr_run)(cov_dim, os_size, laplacian_kernel, jD)
                                                                 for nind in range(jD['num_exp']))
 
