@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import statsmodels.api as sm
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
 from utils import *
 
 
@@ -18,7 +20,7 @@ DISCRETE_COLS = ["sex", "twin", "b.marr", "mom.lths", "mom.hs", "mom.scoll",
 class IHDPDataModule:
     '''
     Current version generates a dataframe with:
-        Gaussian covariates X
+        Covariates from IHDP data
         Logistic propensity scores P(A=1 | X)
         Time-to-event variables from a CoxPH model (both for potential outcomes Y0 Y1 and censoring times C0 C1)
 
@@ -53,7 +55,14 @@ class IHDPDataModule:
         self.fig_save_dir = os.path.join(DATA_DIR,f'ihdp/S{self.S}/figures')  # directory to save the figures
         self.df_load_dir = os.path.join(DATA_DIR,f"ihdp/ihdp.csv")
         self.cov_list = [f'X{i}' for i in range(d+1)]
-
+        
+        self.og_df = pd.read_csv(self.df_load_dir)
+        self.og_df_len = len(self.og_df)
+        
+        scaler = MinMaxScaler()
+        self.og_df[CONT_COLS] = scaler.fit_transform(self.og_df[CONT_COLS]) 
+        self.og_df[DISCRETE_COLS] = self.og_df[DISCRETE_COLS] - 0.5
+        
         self.df, self.df_observed = self._generate_data()
         if save_df: self._save_csv()
 
@@ -124,14 +133,7 @@ class IHDPDataModule:
             raise NotImplementedError(f'Time-to-event model <{self.tte_params["model"]}> is not implemented.')
     
 
-    def get_oracle_mean_response_surface(self, cov_arr, outcome):
-        # return the oracle mean response surface signal in INTERVAL for OUTCOME (C, Y) in TREATMENT arm (0,1) 
-        return
-    
-
     def _generate_data(self):
-
-        self.og_df = pd.read_csv(self.df_load_dir)
 
         df = pd.DataFrame(index=np.arange(self.n))
         df['S'] = self.S
@@ -164,14 +166,14 @@ class IHDPDataModule:
         return df, df_observed
     
 
-    def _sample_x(self):
-        df_no_treat = self.og_df.drop(columns = "treat")
-        pat_idx = np.random.choice(len(df_no_treat),self.n)
-        df_no_treat[CONT_COLS] = (df_no_treat[CONT_COLS] - df_no_treat[CONT_COLS].mean() ) / df_no_treat[CONT_COLS].std()
+    def _sample_x(self):   
         
-        df_ = df_no_treat[self.px_cols]
-
-        return df_.values[pat_idx]
+        df_ihdp = self.og_df[self.px_cols].copy()
+        
+        if self.n <= self.og_df_len:
+            return df_ihdp.values[:self.n]
+        else:
+            return pd.concat([df_ihdp] * int(np.round(self.n/self.og_df_len)), ignore_index=True).values
 
 
     def _calc_propensity(self, X):
