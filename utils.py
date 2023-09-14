@@ -34,6 +34,15 @@ def weibull_oracle_adj_surv(T, x, args):
     return np.exp(-((args['lambda'] * T) ** args['p']) * np.exp(x @ args['beta']))
 
 
+def get_oracle_surv(T_arr, jD, s, key):
+    study = 'RCT' if s == 0 else 'OS'
+    args = jD[study]['tte_params']['cox_args'][key].copy()
+    beta = args['beta'].copy()
+    baseline_surv = np.array(list(map(lambda t: weibull_oracle_adj_surv(t, np.zeros(len(args['beta'])), args), T_arr)))
+
+    return baseline_surv, beta[:len(jD['cov_list'])]
+
+
 def read_json(json_path, d, uc, sigs_to_keep):
     with open('exp_configs/' + json_path, 'r') as file:
         try:

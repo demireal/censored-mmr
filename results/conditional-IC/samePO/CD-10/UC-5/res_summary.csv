@@ -1,4 +1,0 @@
-Test,m = 1,m = 2
-IPCW,0.55,0.675
-IPW-Impute,1.0,1.0
-IPW-Drop,0.925,1.0
