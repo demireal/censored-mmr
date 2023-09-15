@@ -51,7 +51,7 @@ for cov_dim in args.CD:
             start_time = time()
             os_size = jD['rct_size'] * m 
 
-            max_jobs = 1#cpu_count()
+            max_jobs = cpu_count()
 
             local_mmr_results = Parallel(n_jobs=max_jobs)(delayed(mmr_run)(cov_dim, os_size, laplacian_kernel, jD)
                                                                 for nind in range(jD['num_exp']))
@@ -73,7 +73,7 @@ for cov_dim in args.CD:
 
         # Saving the results
 
-        save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f'/results/{args.json_path[:-5]}/CD-{cov_dim}/UC-{unmeas_conf}')
+        save_dir = Path(os.path.dirname(os.path.abspath(__file__)) + f'/results/{args.json_path[:-5]}/{args.signals}/M-{args.M}/CD-{cov_dim}/UC-{unmeas_conf}')
         save_dir.mkdir(parents=True, exist_ok=True)
 
         mmr_results_df.to_csv(os.path.join(save_dir, 'res_summary.csv'), index=False)    

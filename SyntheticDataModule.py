@@ -27,7 +27,8 @@ class SyntheticDataModule:
                                 'Y1': {'beta': [0,0], 'lambda': 1, 'p': 1},
                                 'C0': {'beta': [0,0], 'lambda': 1, 'p': 1},
                                 'C1': {'beta': [0,0], 'lambda': 1, 'p': 1},},
-                    }
+                    },
+                    global_thresh=None
                 ):
 
         self.d = d  # covariate dimension (integer)
@@ -40,10 +41,12 @@ class SyntheticDataModule:
         self.tte_params = tte_params  # the model that specifies how the oracle time-to-event variables are generated (string)
                                     # (for Cox model, keep first term of beta 0 always to not run into errors later with libraries)
                                     # (same effect can be achieved via lambda&p anyways)
+        self.global_thresh = global_thresh # threshold for global censoring ( set censoring value to this if Y > thresh)
 
         self.df_save_dir = f'./data/S{self.S}/csv'  # directory to save the DataFrames
         self.fig_save_dir = f'./data/S{self.S}/figures'  # directory to save the figures
         self.cov_list = [f'X{i}' for i in range(d+1)]
+
 
         self.df, self.df_observed = self._generate_data()
         if save_df: self._save_csv()
@@ -133,6 +136,10 @@ class SyntheticDataModule:
         df['Y1'] = self._sample_tte(X, 'Y1')
         df['C0'] = self._sample_tte(X, 'C0')
         df['C1'] = self._sample_tte(X, 'C1')
+
+        if self.global_thresh is not None:
+            df.loc[df.Y0>self.global_thresh,'C0'] = self.global_thresh
+            df.loc[df.Y1>self.global_thresh,'C1'] = self.global_thresh
         
         df['Y'] =  df['A'] * df['Y1'] + (1 - df['A']) * df['Y0']  # record the realized potential event time 
         df['C'] =  df['A'] * df['C1'] + (1 - df['A']) * df['C0']  # record the realized potential censoring time
