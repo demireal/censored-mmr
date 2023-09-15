@@ -37,7 +37,7 @@ class IHDPDataModule:
                                 'C0': {'beta': [0,0], 'lambda': 1, 'p': 1},
                                 'C1': {'beta': [0,0], 'lambda': 1, 'p': 1},},
                     },
-                global_thresh=None
+                global_threshold=None
                 ):
 
         self.d = d  # covariate dimension (integer)
@@ -51,7 +51,7 @@ class IHDPDataModule:
         self.tte_params = tte_params  # the model that specifies how the oracle time-to-event variables are generated (string)
                                     # (for Cox model, keep first term of beta 0 always to not run into errors later with libraries)
                                     # (same effect can be achieved via lambda&p anyways)
-        self.global_thresh = global_thresh # threshold for global censoring ( set censoring value to this if Y > thresh)
+        self.global_thresh = global_threshold # threshold for global censoring ( set censoring value to this if Y > thresh)
 
         self.df_save_dir = os.path.join(DATA_DIR,f'ihdp/S{self.S}/csv')  # directory to save the DataFrames
         self.fig_save_dir = os.path.join(DATA_DIR,f'ihdp/S{self.S}/figures')  # directory to save the figures
