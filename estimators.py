@@ -38,7 +38,7 @@ def prop_score_est(df, target, feature, model_name='logistic'):
             result = logit_model.fit(disp=0)
         except:
             print("Singular matrix : estimating with regularization")
-            result = logit_model.fit_regularized(disp=0)
+            result = logit_model.fit_regularized(disp=0, alpha = 0.001)
         return result.predict(X)
 
     elif model_name == 'mean':
