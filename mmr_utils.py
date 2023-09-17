@@ -374,7 +374,7 @@ def generate_data(d, os_size, jD):
     else:
         global_threshold = None
 
-    print(f'Using Global Censoring with threshold : {global_threshold}')
+    #print(f'Using Global Censoring with threshold : {global_threshold}')
     if jD['data_name'] == "synthetic":
         RCTData = SyntheticDataModule(jD['save_df'], d, jD['rct_size'], 0, jD['RCT']['px_dist'], jD['RCT']['px_args'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'], global_threshold = global_threshold)
         OSData = SyntheticDataModule(jD['save_df'], d, os_size, 1, jD['OS']['px_dist'], jD['OS']['px_args'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'], global_threshold = global_threshold)

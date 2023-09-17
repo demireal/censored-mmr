@@ -1,0 +1,62 @@
+{
+    
+    "save_df": false,  
+    "data_name": "ihdp",
+    "num_cov": 10,
+    "cov_list": ["X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X9", "X10"],
+    "crop_prop": true,
+    "rct_size": 985,
+    "B": 100,
+    "num_exp": 40,
+    "global_threshold": 8,
+    
+    "RCT":  
+
+        {    
+        "px_cols": ["twin", "b.head", "preterm", "momage", "bw", "b.marr", "nnhealth", "birth.o", "momhisp", "sex"],
+        "prop_fn":    "sigmoid",
+        "prop_args":  {"beta": [0, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]},
+        "tte_params": {"model": "coxph",
+                       "hazard": "weibull",
+                       "cox_args": {
+                "Y0": {"beta": [0, -0.2, 0.3, 0.4, -0.4, 0.6, 0.25, -0.3, 0, 0.4, 5], "lambda": 0.3, "p": 3, "UB": 5},
+                "Y1": {"beta": [0, 0.1, 0, -0.3, 0.2, 0.4, 0, -0.5, 0.6, 0, -2], "lambda": 0.25, "p": 3, "UB": 12},
+                "C0": {"beta": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "lambda": 0.15, "p": 2, "UB": 100},
+                "C1": {"beta": [0, -0.2, 0, 0.1, 0, -0.3, 0, 0, -0.2, 0, 0], "lambda": 0.01, "p": 6, "UB": 100}
+                                   }
+                       }
+        },
+
+
+    "OS":  
+
+        {    
+        "px_cols": ["twin", "b.head", "preterm", "momage", "bw", "b.marr", "nnhealth", "birth.o", "momhisp", "sex"],
+        "prop_fn":    "sigmoid",
+        "prop_args":  {"beta": [0.75, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1.5]},
+        "tte_params": {"model": "coxph",
+                       "hazard": "weibull",
+                       "cox_args": {
+                "Y0": {"beta": [0, -0.2, 0.3, 0.4, -0.4, 0.6, 0.25, -0.3, 0, 0.4, 5], "lambda": 0.3, "p": 3, "UB": 5},
+                "Y1": {"beta": [0, 0.1, 0, -0.3, 0.2, 0.4, 0, -0.5, 0.6, 0, -2], "lambda": 0.25, "p": 3, "UB": 12},
+                "C0": {"beta": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "lambda": 0.15, "p": 2, "UB": 100},
+                "C1": {"beta": [0, -0.2, 0, 0.1, 0, -0.3, 0, 0, -0.2, 0, 0], "lambda": 0.01, "p": 6, "UB": 100}
+                                   }
+                       }
+        },
+
+    "test_signals":
+
+        {
+        "IPCW": ["S0_ipcw_est_CATE", "S1_ipcw_est_CATE"],
+        "CDR": ["S0_cdr_Miss_None_est_CATE", "S1_cdr_Miss_None_est_CATE"],
+        "CDR-MissG": ["S0_cdr_Miss_Gb_est_CATE", "S1_cdr_Miss_Gb_est_CATE"],
+        "CDR-MissF": ["S0_cdr_Miss_Fb_est_CATE", "S1_cdr_Miss_Fb_est_CATE"],
+        "IPW-Impute": ["S0_impute_ipw_est_CATE", "S1_impute_ipw_est_CATE"],
+        "IPW-Drop": ["S0_drop_ipw_est_CATE", "S1_drop_ipw_est_CATE"],
+        "DR-Impute": ["S0_impute_dr_est_CATE", "S1_impute_dr_est_CATE"],
+        "DR-Drop": ["S0_drop_dr_est_CATE", "S1_drop_dr_est_CATE"],
+        "IPCW_GC": ["S0_ipcw_gc_est_CATE", "S1_ipcw_gc_est_CATE"]
+        }
+
+}
