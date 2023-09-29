@@ -1,9 +1,2 @@
-Test,m = 1,m = 3
-IPCW,0.05,0.025
-CDR,0.15,0.0
-CDR-MissG,0.05,0.0
-CDR-MissF,0.05,0.0
-IPW-Impute,1.0,1.0
-IPW-Drop,0.925,1.0
-DR-Impute,1.0,1.0
-DR-Drop,1.0,1.0
+Test,m = 1
+IPCW,0.0
