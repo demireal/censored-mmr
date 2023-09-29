@@ -37,7 +37,7 @@ def prop_score_est(df, target, feature, model_name='logistic'):
         try:
             result = logit_model.fit(disp=0)
         except:
-            print("Singular matrix : estimating with regularization")
+            #print("Singular matrix : estimating with regularization")
             alpha = 0.001
             res_not_complete = True
             while res_not_complete:
