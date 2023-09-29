@@ -194,7 +194,7 @@ def eval_mu_(s, a, x, Fb_Y, mis_spec):
         
     Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))        # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
         
-    func = interp1d(Fb_sa_t, Fb_sax, kind='linear', fill_value='extrapolate')
+    func = interp1d(Fb_sa_t, Fb_sax, kind='nearest', fill_value='extrapolate')
     return quad(func, a=0, b=Fb_sa_t.max(), limit=1)[0]    
 
 
