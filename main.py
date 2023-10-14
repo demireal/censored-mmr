@@ -30,6 +30,7 @@ parser.add_argument('--CD', nargs='+', type=int, help='List of covariate dimensi
 parser.add_argument('--UC', nargs='+', type=int, help='List of unmeasured confounder counts')
 parser.add_argument('--M', nargs='+', type=int, help='List of multiplying factors for observational sample size')
 parser.add_argument("--signals", nargs="+", help="List of signals to be tested as strings.")
+parser.add_argument('--exp', default='ihdp', type=str, help='experiment type as whi or ihdp')
 args = parser.parse_args()
 
 assert min(args.UC) >=0, 'Number of unmeasured confounders cannot be negative'
@@ -38,7 +39,7 @@ assert max(args.UC) <= min(args.CD), 'Number of unmeasured confounders cannot ex
  
 for cov_dim in args.CD:
     for unmeas_conf in args.UC:
-        jD = read_json(args.json_path, cov_dim, unmeas_conf, args.signals)
+        jD = read_json(args.json_path, cov_dim, unmeas_conf, args.signals, exp_type=args.exp)
 
         mmr_results = np.zeros((len(args.M), len(jD['test_signals']), jD['num_exp']))
         mmr_pvals = np.zeros((len(args.M), len(jD['test_signals']), jD['num_exp']))
@@ -51,7 +52,7 @@ for cov_dim in args.CD:
             start_time = time()
             os_size = jD['rct_size'] * m 
 
-            max_jobs = cpu_count()
+            max_jobs = 40
 
             local_mmr_results = Parallel(n_jobs=max_jobs)(delayed(mmr_run)(cov_dim, os_size, laplacian_kernel, jD)
                                                                 for nind in range(jD['num_exp']))

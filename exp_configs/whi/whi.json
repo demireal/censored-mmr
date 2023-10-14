@@ -1,0 +1,17 @@
+{ 
+    "data_name": "whi",
+    "B": 100,
+    
+    "test_signals":
+        {
+        "IPCW": ["S0_ipcw_est_CATE", "S1_ipcw_est_CATE"],
+        "CDR": ["S0_cdr_Miss_None_est_CATE", "S1_cdr_Miss_None_est_CATE"],
+        "CDR-MissG": ["S0_cdr_Miss_Gb_est_CATE", "S1_cdr_Miss_Gb_est_CATE"],
+        "CDR-MissF": ["S0_cdr_Miss_Fb_est_CATE", "S1_cdr_Miss_Fb_est_CATE"],
+        "IPW-Impute": ["S0_impute_ipw_est_CATE", "S1_impute_ipw_est_CATE"],
+        "IPW-Drop": ["S0_drop_ipw_est_CATE", "S1_drop_ipw_est_CATE"],
+        "DR-Impute": ["S0_impute_dr_est_CATE", "S1_impute_dr_est_CATE"],
+        "DR-Drop": ["S0_drop_dr_est_CATE", "S1_drop_dr_est_CATE"]
+        }
+
+}

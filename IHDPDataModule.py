@@ -156,10 +156,10 @@ class IHDPDataModule:
 #             df.loc[df.Y1>self.global_thresh,'C1'] = self.global_thresh
 
         if self.global_thresh is not None:
-            df.loc[df.Y1 > self.global_thresh,'C1'] = 3 + 0.2 * np.random.randn(len(df.loc[df.Y1 > self.global_thresh]))
+            df.loc[df.Y1 > self.global_thresh,'C1'] = 3 + 0.1 * np.random.randn(len(df.loc[df.Y1 > self.global_thresh]))
             #df.loc[df.Y1 <= self.global_thresh,'C1'] = df.loc[df.Y1<=self.global_thresh,'Y1'] + 1
             
-            df.loc[df.Y0 > self.global_thresh,'C0'] = 3 + 0.2 * np.random.randn(len(df.loc[df.Y0 > self.global_thresh]))
+            #df.loc[df.Y0 > self.global_thresh,'C0'] = 3 + 0.1 * np.random.randn(len(df.loc[df.Y0 > self.global_thresh]))
             #df.loc[df.Y0 <= self.global_thresh,'C0'] = df.loc[df.Y0<=self.global_thresh,'Y0'] + 1
         
         df['Y'] =  df['A'] * df['Y1'] + (1 - df['A']) * df['Y0']  # record the realized potential event time 

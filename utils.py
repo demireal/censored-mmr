@@ -43,7 +43,8 @@ def get_oracle_surv(T_arr, jD, s, key):
     return baseline_surv, beta[:len(jD['cov_list'])]
 
 
-def read_json(json_path, d, uc, sigs_to_keep):
+def read_json(json_path, d, uc, sigs_to_keep, exp_type='ihdp'):
+
     with open('exp_configs/' + json_path, 'r') as file:
         try:
             jD = json.load(file)
@@ -51,25 +52,25 @@ def read_json(json_path, d, uc, sigs_to_keep):
             print("Invalid JSON format in the input file.")
 
     assert jD['num_cov'] == len(jD['RCT']['prop_args']['beta']) - 1\
-                         == len(jD['RCT']['tte_params']['cox_args']['Y0']['beta']) - 1 \
-                         == len(jD['RCT']['tte_params']['cox_args']['Y1']['beta']) - 1 \
-                         == len(jD['RCT']['tte_params']['cox_args']['C0']['beta']) - 1 \
-                         == len(jD['RCT']['tte_params']['cox_args']['C1']['beta']) - 1 \
-                         == len(jD['OS']['prop_args']['beta']) - 1 \
-                         == len(jD['OS']['tte_params']['cox_args']['Y0']['beta']) - 1 \
-                         == len(jD['OS']['tte_params']['cox_args']['Y1']['beta']) - 1 \
-                         == len(jD['OS']['tte_params']['cox_args']['C0']['beta']) - 1 \
-                         == len(jD['OS']['tte_params']['cox_args']['C1']['beta']) - 1 \
+                        == len(jD['RCT']['tte_params']['cox_args']['Y0']['beta']) - 1 \
+                        == len(jD['RCT']['tte_params']['cox_args']['Y1']['beta']) - 1 \
+                        == len(jD['RCT']['tte_params']['cox_args']['C0']['beta']) - 1 \
+                        == len(jD['RCT']['tte_params']['cox_args']['C1']['beta']) - 1 \
+                        == len(jD['OS']['prop_args']['beta']) - 1 \
+                        == len(jD['OS']['tte_params']['cox_args']['Y0']['beta']) - 1 \
+                        == len(jD['OS']['tte_params']['cox_args']['Y1']['beta']) - 1 \
+                        == len(jD['OS']['tte_params']['cox_args']['C0']['beta']) - 1 \
+                        == len(jD['OS']['tte_params']['cox_args']['C1']['beta']) - 1 \
                     , "Check covariate dimensions."
     
     if "px_cols" in jD['RCT']:
         assert jD['num_cov'] == len(jD['RCT']['px_cols']) \
-                             == len(jD['OS']['px_cols']) 
+                            == len(jD['OS']['px_cols']) 
     else:
         assert jD['num_cov'] == len(jD['RCT']['px_args']['mean']) \
-                             == len(jD['RCT']['px_args']['cov']) \
-                             == len(jD['OS']['px_args']['mean']) \
-                             == len(jD['OS']['px_args']['cov']) , "Check covariate dimensions."
+                            == len(jD['RCT']['px_args']['cov']) \
+                            == len(jD['OS']['px_args']['mean']) \
+                            == len(jD['OS']['px_args']['cov']) , "Check covariate dimensions."
     
     jD_new = jD.copy()
     
@@ -99,7 +100,16 @@ def read_json(json_path, d, uc, sigs_to_keep):
     jD_new['cov_list'] = [f'X{i}' for i in range(d - uc + 1)]
     jD_new['test_signals'] = {key: value for key, value in jD['test_signals'].items() if key in sigs_to_keep}
     
-    
-    
     return jD_new
+
+
+def read_json_whi(json_path, sigs_to_keep):
+    with open('exp_configs/' + json_path, 'r') as file:
+        try:
+            jD = json.load(file)
+        except json.JSONDecodeError:
+            print("Invalid JSON format in the input file.")
+
+    jD['test_signals'] = {key: value for key, value in jD['test_signals'].items() if key in sigs_to_keep}
     
+    return jD

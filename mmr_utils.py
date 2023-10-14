@@ -7,6 +7,7 @@ from time import sleep, time
 from lifelines import CoxPHFitter
 from SyntheticDataModule import *
 from IHDPDataModule import *
+from WHIDataModule import *
 from scipy.integrate import quad
 from scipy.interpolate import interp1d
 from sklearn.metrics.pairwise import rbf_kernel, laplacian_kernel
@@ -194,7 +195,7 @@ def eval_mu_(s, a, x, Fb_Y, mis_spec):
         
     Fb_sax = Fb_sa ** (np.exp(Fb_sa_beta @ x))        # Fb(t|X=x,S=s,A=a) = P(Y>t|X=x,S=s,A=a)
         
-    func = interp1d(Fb_sa_t, Fb_sax, kind='nearest', fill_value='extrapolate')
+    func = interp1d(Fb_sa_t, Fb_sax, kind='linear', fill_value='extrapolate')
     return quad(func, a=0, b=Fb_sa_t.max(), limit=1)[0]    
 
 
@@ -261,34 +262,34 @@ def ipw_est(df, S, baseline):
         df.loc[i, f'S{S}_{baseline}_ipw_est_Y0'] = - (1 - row['A']) * ipw
 
 
-def ipcw_est_gc(df, S):
-    '''
-    Calculate the instance-wise inverse propensity weighted signal for CATE, using the *combined* dataframe.
-    Record the IPCW-signals in the dataframe. With Global censoring.
+# def ipcw_est_gc(df, S):
+#     '''
+#     Calculate the instance-wise inverse propensity weighted signal for CATE, using the *combined* dataframe.
+#     Record the IPCW-signals in the dataframe. With Global censoring.
 
-    @params:
-        df: Data (pd.DataFrame)
-        S: study index (integer)
-    '''
+#     @params:
+#         df: Data (pd.DataFrame)
+#         S: study index (integer)
+#     '''
 
-    for i in range(len(df)):
-        row = df.loc[i]
+#     for i in range(len(df)):
+#         row = df.loc[i]
 
-        if row['Delta'] == 1 and row['S'] == S:
-            part1 = row['A'] / (row['P(A=1|X,S)'])
-            part0 = (1 - row['A']) / (1 - row['P(A=1|X,S)'])
+#         if row['Delta'] == 1 and row['S'] == S:
+#             part1 = row['A'] / (row['P(A=1|X,S)'])
+#             part0 = (1 - row['A']) / (1 - row['P(A=1|X,S)'])
 
-            psx = row['S'] * row['P(S=1|X)'] + (1 - row['S']) * (1 - row['P(S=1|X)'])
-            denom = psx * row['P(Delta=1|X,S,A)']
+#             psx = row['S'] * row['P(S=1|X)'] + (1 - row['S']) * (1 - row['P(S=1|X)'])
+#             denom = psx * row['P(Delta=1|X,S,A)']
 
-            ipcw = row['T'] * (part1 - part0) / denom
+#             ipcw = row['T'] * (part1 - part0) / denom
 
-        else:
-            ipcw = 0
+#         else:
+#             ipcw = 0
 
-        df.loc[i, f'S{S}_ipcw_gc_est_CATE'] = ipcw
-        df.loc[i, f'S{S}_ipcw_gc_est_Y1'] = row['A'] * ipcw
-        df.loc[i, f'S{S}_ipcw_gc_est_Y0'] = - (1 - row['A']) * ipcw 
+#         df.loc[i, f'S{S}_ipcw_gc_est_CATE'] = ipcw
+#         df.loc[i, f'S{S}_ipcw_gc_est_Y1'] = row['A'] * ipcw
+#         df.loc[i, f'S{S}_ipcw_gc_est_Y0'] = - (1 - row['A']) * ipcw 
         
 def cdr_est(df, cov_list, Gb_C, Fb_Y, S, mis_spec):
 
@@ -381,8 +382,11 @@ def generate_data(d, os_size, jD):
     elif jD['data_name'] == "ihdp":
         RCTData = IHDPDataModule(jD['save_df'], d, jD['rct_size'], 0,  jD['RCT']['px_cols'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'], global_threshold = global_threshold)
         OSData = IHDPDataModule(jD['save_df'], d, os_size, 1,  jD['OS']['px_cols'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'], global_threshold = global_threshold)
+    elif jD['data_name'] == "whi":
+        RCTData = WHIDataModule(S=0)
+        OSData = WHIDataModule(S=1)
     else:
-        raise ValueError("Invalid data name. Choose from 'synthetic' or 'ihdp'.")
+        raise ValueError("Invalid data name. Choose from 'synthetic' or 'ihdp' or 'whi'.")
     
     _, df_rct = RCTData.get_df()
     _, df_os = OSData.get_df()
@@ -396,39 +400,44 @@ def generate_data(d, os_size, jD):
 def est_nuisance(df_combined, df_comb_drop, jD):
     
     # Estimate the nuisance parameters for the combined dataframe
-
+    print('Estimating P(S=1|X)...')
     df_combined['P(S=1|X)'] = prop_score_est(df_combined.copy(), 'S', jD['cov_list'])
-    
+    print('Done!\n')
     mu_regressor = {} 
 
     for sind in range(2):
+        print(f'Estimating P(A=1|X,S={sind})...')
         df_combined.loc[df_combined['S']==sind, 'P(A=1|X,S)'] =\
             prop_score_est(df_combined.query(f'S=={sind}').copy(), 'A', jD['cov_list'])
+        print('Done!\n')
         
         for aind in range(2):
+            print(f'Estimating mu(X,S={sind},A={aind})...')
             mu_regressor[f'S{sind}_A{aind}'] =\
             mu_est_baseline(df_combined.query(f'S=={sind} & A=={aind}').copy(), 'T', jD['cov_list'])
+            print('Done!\n')
 
-            df_delta = df_combined.query(f'S=={sind} & A=={aind}')
-            df_combined.loc[(df_combined["S"]==sind) & (df_combined["A"]==aind),f'P(Delta=1|X,S,A)'] = prop_score_est(df_delta,'Delta',jD["cov_list"])
+            # df_delta = df_combined.query(f'S=={sind} & A=={aind}')
+            # df_combined.loc[(df_combined["S"]==sind) & (df_combined["A"]==aind),f'P(Delta=1|X,S,A)'] = prop_score_est(df_delta,'Delta',jD["cov_list"])
             
         df_combined.loc[df_combined.S==sind, 'mu(Y|X,S,A=0)'] =\
             mu_regressor[f'S{sind}_A0'].predict(df_combined.loc[df_combined.S==sind, jD['cov_list']])
         df_combined.loc[df_combined.S==sind, 'mu(Y|X,S,A=1)'] =\
             mu_regressor[f'S{sind}_A1'].predict(df_combined.loc[df_combined.S==sind, jD['cov_list']])
     
-
+    print('Estimating the survival functions')
     Gb_C, Fb_Y = est_surv(df_combined, 'coxph', jD)
+    print('Done!\n')
     df_combined['Gb(T|X,S,A)'] = df_combined.apply(lambda r:\
      eval_surv_(Gb_C[f"t_S{int(r['S'])}_A{int(r['A'])}"], Gb_C[f"St_S{int(r['S'])}_A{int(r['A'])}"], r['T']), axis=1)
-
+    
     if any("IPCW" in key for key in jD['test_signals'].keys()):
         ipcw_est(df_combined, S=0)
         ipcw_est(df_combined, S=1)
 
-    if any("IPCW_GC" in key for key in jD['test_signals'].keys()):
-        ipcw_est_gc(df_combined, S = 0)
-        ipcw_est_gc(df_combined, S = 1)
+    # if any("IPCW_GC" in key for key in jD['test_signals'].keys()):
+    #     ipcw_est_gc(df_combined, S = 0)
+    #     ipcw_est_gc(df_combined, S = 1)
         
     if any("IPW-Impute" in key for key in jD['test_signals'].keys()):
         ipw_est(df_combined, S=0, baseline='impute')  # censored observations are IMPUTED

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 python3 main.py --json_path=ihdp/samePOihdp_GC.json --UC=0 --CD=10 --M=1 --signals=CDR
 python3 main.py --json_path=ihdp/samePOihdp_GC.json --UC=0 --CD=10 --M=1 --signals=IPCW

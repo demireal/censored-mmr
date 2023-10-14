@@ -1,0 +1,1117 @@
+const
+AGE
+F20DAYS
+LSTVISDY
+LSTMAMDY
+LSTPAPDY
+TIMELAST
+F2DAYS
+F30DAYS
+F31DAYS
+MENOPSEA
+ANYMENSA
+MENO
+F32DAYS
+F34DAYS
+TEPIWK
+LEPITOT
+MSEPIWK
+XLMSEPI
+TMINWK
+MSMINWK
+SMINWK
+TEXPWK
+WALKEXP
+HARDEXP
+MODEXP
+MILDEXP
+AVWKEXP
+FFWKEXP
+VFWKEXP
+ALCSWK
+PACKYRS
+F37DAYS
+AMBEMOT
+EMOWELL
+ENERFAT
+HOSTIL
+GENHLTH
+LFEVENT1
+LFEVENT2
+NEGEMOT
+OPTIMISM
+PAIN
+PHYSFUN
+PSHTDEP
+SLPDSTRB
+SOCFUNC
+SOCSTRN
+SOCSUPP
+SYMPTOM
+F40DAYS
+F41DAYS
+F43DAYS
+F43AGE
+F45DAYS
+F45VITA
+F45VITE
+F45VITB1
+F45VTB12
+F45VITB2
+F45VITB6
+F45BETA
+F45BIOT
+F45VITC
+F45CALC
+F45CHROM
+F45COPP
+F45VITD
+F45FOLIC
+F45IRON
+F45MAGN
+F45MANG
+F45MOLYB
+F45NIAC
+F45PANTO
+F45RETIN
+F45SELEN
+F45ZINC
+F80DAYS
+PULSE30
+SYSTBP1
+DIASBP1
+SYSTBP2
+DIASBP2
+HEIGHT
+WEIGHT
+WAIST
+HIP
+SYST
+DIAS
+BMI
+WHR
+CBCDAYS
+HEMATOCR
+HEMOGLBN
+PLATELET
+WBC
+AGER_70-79+
+AGER_<50-59
+AGESTRAT_55 to 59
+AGESTRAT_60 to 69
+AGESTRAT_70 to 79
+REGION_Northeast
+REGION_South
+REGION_West
+ETHNIC_Asian or Pacific Islander
+ETHNIC_Black or African-American
+ETHNIC_Hispanic/Latino
+ETHNIC_Other
+ETHNIC_White (not of Hispanic origin)
+LANG_Spanish
+EDUC_x_Didn't go to school
+EDUC_x_Doctoral Degree (Ph.D,M.D.,J.D.,etc.)
+EDUC_x_Grade school (1-4 years)
+EDUC_x_Grade school (5-8 years)
+EDUC_x_High school diploma or GED
+EDUC_x_Master's Degree
+EDUC_x_Some college or Associate Degree
+EDUC_x_Some high school (9-11 years)
+EDUC_x_Some post-graduate or professional
+EDUC_x_Vocational or training school
+INCOME_x_$100,000 to $149,999
+INCOME_x_$150,000 or more
+INCOME_x_$20,000 to $34,999
+INCOME_x_$35,000 to $49,999
+INCOME_x_$50,000 to $74,999
+INCOME_x_$75,000 to $99,999
+INCOME_x_Don't know
+INCOME_x_Less than $10,000
+DMARM_Intervention
+DMARM_Not randomized to DM
+CADARM_Intervention
+CADARM_Not randomized to DM
+SHAREPPT_Yes
+LATREGION_Northern: > 40 degrees N
+LATREGION_Southern: < 35 degrees N
+WATTSCAT_0.7
+WATTSCAT_1.0
+WATTSCAT_1.4
+WATTSCAT_1.5-1.9
+LANGLEYSCAT_350
+LANGLEYSCAT_375-380
+LANGLEYSCAT_400-430
+LANGLEYSCAT_475-500
+F20CONT_Other
+F20CONT_Phone
+F20CONT_Visit
+EDUC_y_College graduate or Baccalaureate Degree
+EDUC_y_Didn't go to school
+EDUC_y_Doctoral Degree (Ph.D,M.D.,J.D.,etc.)
+EDUC_y_Grade school (1-4 years)
+EDUC_y_Grade school (5-8 years)
+EDUC_y_High school diploma or GED
+EDUC_y_Master's Degree
+EDUC_y_Some college or Associate Degree
+EDUC_y_Some high school (9-11 years)
+EDUC_y_Some post-graduate or professional
+EDUC_y_Vocational or training school
+NOTWRK_Yes
+RETIRED_Yes
+HOMEMKR_Yes
+EMPLOYED_Yes
+DISABLED_Yes
+OTHWRK_Yes
+JOBHMMKR_Yes
+JOBMANGR_Yes
+JOBTECH_Yes
+JOBSERV_Yes
+JOBLABOR_Yes
+JOBOTH_Yes
+MARITAL_Marriage-like relationship
+MARITAL_Never married
+MARITAL_Presently married
+MARITAL_Widowed
+INCOME_y_$10,000 to $19,999
+INCOME_y_$100,000 to $149,999
+INCOME_y_$150,000 or more
+INCOME_y_$20,000 to $34,999
+INCOME_y_$35,000 to $49,999
+INCOME_y_$50,000 to $74,999
+INCOME_y_$75,000 to $99,999
+INCOME_y_Don't know
+INCOME_y_Less than $10,000
+CAREPROV_Yes
+MAMMO_Yes
+PAPSMEAR_No
+PAPSMEAR_Yes
+ABNPAP3Y_Yes
+CERVDYS_Yes
+ENDOASP_Yes
+HMOINS_Yes
+OTHPRVIN_Yes
+MEDICARE_Yes
+MLTRYINS_Yes
+NOINS_Yes
+PAYOTH_Yes
+USSERVE_Yes
+MAINJOB_Managerial / Professional
+MAINJOB_Service / Labor
+MAINJOB_Technical / Sales / Admin
+NOMAM2YR_No mammogram within 2 years
+NOPAP3YR_Pap within 3 years
+TIMELSTS_Yes
+ANYINS_Yes
+F2CONT_Other
+F2CONT_Phone
+F2CONT_Visit
+AREA3Y_Yes
+OTHSTDY_Yes
+BRCA_F2_Yes
+COLON_F2_Yes
+ENDO_F2_Yes
+SKIN_F2_Yes
+MELAN_F2_Yes
+OTHCA10Y_Yes
+RACE_Asian or Pacific Islander
+RACE_Black or African-American
+RACE_Hispanic/Latino
+RACE_Other
+RACE_White (not of Hispanic origin)
+HEARSTDY_Friend or Relative
+HEARSTDY_Mailed letter
+HEARSTDY_Meeting
+HEARSTDY_Newspaper or Magazine
+HEARSTDY_Other
+HEARSTDY_Radio
+HEARSTDY_T.V.
+HORM_Yes
+HYST_Yes
+MENSELST_Over 12 months ago
+MENSELST_Still having menstrual bleeding
+MENSELST_Within last 6 months
+MEALOUT_Less than 10 meals each week
+MALDIET_Yes
+LFDIETF2_Yes
+DIAB_Yes
+DVT_Yes
+PE_Yes
+STROKE_Yes
+TIA_Yes
+MI_Yes
+CHF_F2_Yes
+LIVERDIS_Yes
+BLDPROB_Yes
+L15LBS6M_Yes
+OTHCHRON_Yes
+COMECC_Yes
+INTDM_No
+INTDM_Yes
+INTHRT_No
+INTHRT_Yes
+HELPFILL_Yes
+HORMSTAT_Never used hormones
+HORMSTAT_Past hormone user
+DIABTRT_Yes
+F30CONT_Other
+F30CONT_Phone
+F30CONT_Visit
+HOSP2Y_Yes
+GLAUCOMA_Yes
+CATARACT_Yes
+HICHOLRP_Yes
+ASTHMA_Yes
+EMPHYSEM_Yes
+HIBLDCA_Yes
+STOMULCR_Yes
+DIVERTIC_Yes
+COLITIS_Yes
+LUPUS_Yes
+PANCREAT_Yes
+OSTEOPOR_Yes
+HIPREP_Yes
+OTHJREP_Yes
+INTESTRM_Yes
+MIGRAINE_Yes
+ALZHEIM_Yes
+MS_Yes
+PARKINS_Yes
+ALS_Yes
+NACOND_Yes
+CVD_Yes
+CARDCATH_Yes
+CABG_Yes
+PTCA_Yes
+ATRIALFB_Yes
+AORTICAN_Yes
+ARTHRIT_Yes
+GALLBS_Yes
+HYPT_Yes
+ANGINA_Yes
+PAD_Yes
+COLNSCPY_Yes
+HEMOCCUL_Yes
+CANC_F30_Yes
+BRCA_F30_No
+BRCA_F30_Yes
+OVRYCA_Yes
+ENDO_F30_No
+ENDO_F30_Yes
+COLN_F30_Yes
+THYRCA_Yes
+CERVCA_Yes
+SKINCA_Yes
+MELN_F30_Yes
+LIVERCA_Yes
+LUNGCA_Yes
+BRAINCA_Yes
+BONECA_Yes
+STOMCA_Yes
+LEUKCA_Yes
+BLADCA_Yes
+LYMPHCA_Yes
+HODGCA_Yes
+OTHCA_Yes
+NUMFALLS_2 times
+NUMFALLS_3 or more times
+NUMFALLS_None
+FAINTED_Yes
+BKBONE_Yes
+HTNTRT_Treated hypertensive
+HTNTRT_Untreated hypertensive
+REVASC_Yes
+F31CONT_Other
+F31CONT_Phone
+F31CONT_Visit
+MENARCHE_11
+MENARCHE_12
+MENARCHE_13
+MENARCHE_14
+MENARCHE_15
+MENARCHE_16
+MENARCHE_17 or older
+MENARCHE_9 or less
+MENSREG_Sometimes regular, sometimes irregular
+MENSREG_Yes
+MENSREGA_11
+MENSREGA_12
+MENSREGA_13
+MENSREGA_14
+MENSREGA_15
+MENSREGA_16
+MENSREGA_17 or older
+MENSREGA_9 or less
+MENSWO1Y_Yes
+MENPSYMP_Yes
+PREG_Yes
+PREGNUM_2
+PREGNUM_3
+PREGNUM_4
+PREGNUM_5
+PREGNUM_6
+PREGNUM_7
+PREGNUM_8 or more
+PREG6M_Yes
+BRTHLIVN_2
+BRTHLIVN_3
+BRTHLIVN_4
+BRTHLIVN_5
+BRTHLIVN_6
+BRTHLIVN_7
+BRTHLIVN_8 or more
+BRTHLIVN_None
+BRTHSTLN_2
+BRTHSTLN_3
+BRTHSTLN_4
+BRTHSTLN_5
+BRTHSTLN_6
+BRTHSTLN_7
+BRTHSTLN_8 or more
+BRTHSTLN_None
+MISCARYN_2
+MISCARYN_3
+MISCARYN_4
+MISCARYN_5
+MISCARYN_6
+MISCARYN_7
+MISCARYN_8 or more
+MISCARYN_None
+ECTPREG_2
+ECTPREG_3
+ECTPREG_4
+ECTPREG_5
+ECTPREG_6
+ECTPREG_7
+ECTPREG_8 or more
+ECTPREG_None
+NOCNCEIV_No
+NOCNCEIV_Yes
+BRSTFEED_Yes
+OOPH_No
+OOPH_Yes, both were taken out
+OOPH_Yes, one was taken out
+OOPH_Yes, part of an ovary was taken out
+OOPH_Yes, unknown number taken out
+TUBTIED_Yes
+NEDLASP_Yes
+BRSTBIOP_Yes
+BRSTAUG_Yes
+BRSTOPOT_Yes
+PARITY_2
+PARITY_3
+PARITY_4
+PARITY_5+
+PARITY_Never had term pregnancy
+PARITY_Never pregnant
+FULLTRMR_Yes
+NUMLIVER_2 - 4
+NUMLIVER_5+
+NUMLIVER_Never pregnant
+NUMLIVER_None
+BOOPH_Yes
+BRSTFDMO_13-23 Months
+BRSTFDMO_24+ Months
+BRSTFDMO_7-12 Months
+BRSTFDMO_Never breastfed
+BRSTDIS_Yes, 1 biopsy
+BRSTDIS_Yes, 2+ biopsies
+F32CONT_Other
+F32CONT_Phone
+F32CONT_Visit
+SISTER_No
+SISTER_Yes
+BROTHER_No
+BROTHER_Yes
+DAUGHTER_No
+DAUGHTER_Yes
+SON_No
+SON_Yes
+MOMALIVE_No
+MOMALIVE_Yes
+DADALIVE_No
+DADALIVE_Yes
+DADDIEDA_40-49
+DADDIEDA_50-59
+DADDIEDA_60-69
+DADDIEDA_70-79
+DADDIEDA_80-89
+DADDIEDA_90-99
+DADDIEDA_Less than 40
+DIABREL_No
+DIABREL_Yes
+MIREL_Yes
+STRKREL_No
+STRKREL_Yes
+CANCFREL_Yes
+CANCMREL_Yes
+BKBONMOM_Yes
+BKBONDAD_Yes
+BKBONREL_Yes
+COLOREL_Yes
+F34CONT_Other
+F34CONT_Phone
+F34CONT_Visit
+SMOKEVR_Yes
+COFFEE_Yes
+ALC12DR_Yes
+ALCNOW_Yes
+WGTADULT_Steady gain in weight
+WGTADULT_Weight has gone up and down
+WGTADULT_Weight has stayed about the same
+LCALDIET_Yes
+LFATDIET_Yes
+LSLTDIET_Yes
+FBDIET34_Yes
+DBDIET34_Yes
+LACTDIET_Yes
+OTHDIET_Yes
+WALK_1-3 times each month
+WALK_2-3 times each week
+WALK_4-6 times each week
+WALK_7 or more times each week
+WALK_Rarely or never
+WALKMIN_20-39 minutes
+WALKMIN_40-59 minutes
+WALKMIN_Less than 20 minutes
+WALKSPD_Casual strolling (2 mph)
+WALKSPD_Don't know
+WALKSPD_Fairly fast (3-4 mph)
+WALKSPD_Very fast (>4 mph)
+HRDEX_2 days per week
+HRDEX_3 days per week
+HRDEX_4 days per week
+HRDEX_5 or more days per week
+HRDEX_None
+MODEX_2 days per week
+MODEX_3 days per week
+MODEX_4 days per week
+MODEX_5 or more days per week
+MODEX_None
+MLDEX_2 days per week
+MLDEX_3 days per week
+MLDEX_4 days per week
+MLDEX_5 or more days per week
+MLDEX_None
+HRDEX18_Yes
+HRDEX35_Yes
+HRDEX50_Yes
+LMSEPI_>= 4 episodes per week
+LMSEPI_No activity
+LMSEPI_Some activity of limited duration
+SEPIWK_1
+SEPIWK_2
+SEPIWK_3
+SEPIWK_4
+SEPIWK_5 or more
+SMOKING_Never Smoked
+SMOKING_Past Smoker
+ALCOHOL_7+ drinks per week
+ALCOHOL_<1 drink per month
+ALCOHOL_<1 drink per week
+ALCOHOL_Non drinker
+ALCOHOL_Past drinker
+PACKYRSC_<5
+PACKYRSC_>=20
+PACKYRSC_Never smoker
+LISTEN_All of the time
+LISTEN_Most of the time
+LISTEN_None of the time
+LISTEN_Some of the time
+GOODADVC_All of the time
+GOODADVC_Most of the time
+GOODADVC_None of the time
+GOODADVC_Some of the time
+TAKEDR_All of the time
+TAKEDR_Most of the time
+TAKEDR_None of the time
+TAKEDR_Some of the time
+GOODTIME_All of the time
+GOODTIME_Most of the time
+GOODTIME_None of the time
+GOODTIME_Some of the time
+HLPPROB_All of the time
+HLPPROB_Most of the time
+HLPPROB_None of the time
+HLPPROB_Some of the time
+HLPCHORS_All of the time
+HLPCHORS_Most of the time
+HLPCHORS_None of the time
+HLPCHORS_Some of the time
+SHARE_All of the time
+SHARE_Most of the time
+SHARE_None of the time
+SHARE_Some of the time
+FUN_All of the time
+FUN_Most of the time
+FUN_None of the time
+FUN_Some of the time
+LOVE_All of the time
+LOVE_Most of the time
+LOVE_None of the time
+LOVE_Some of the time
+LIVALN_Yes
+LIVPRT_Yes
+LIVCHLD_Yes
+LIVSIBL_Yes
+LIVREL_Yes
+LIVFRNDS_Yes
+PET_Yes
+RELGTIME_2 or 6 times a week
+RELGTIME_Not at all in the past month
+RELGTIME_Once a week
+RELGTIME_Once in the past month
+RELSTRN_A little
+RELSTRN_None
+CLUB_2 or 6 times a week
+CLUB_Not at all in the past month
+CLUB_Once a week
+CLUB_Once in the past month
+HLPSICK_Yes
+NERVES_Most
+NERVES_None
+NERVES_One
+NERVES_Some
+TOOMUCH_Most
+TOOMUCH_None
+TOOMUCH_One
+TOOMUCH_Some
+EXCLUDE_Most
+EXCLUDE_None
+EXCLUDE_One
+EXCLUDE_Some
+COERCE_Most
+COERCE_None
+COERCE_One
+COERCE_Some
+EXPCTBST_Disagree
+EXPCTBST_Neutral (In-between)
+EXPCTBST_Strongly agree
+EXPCTBST_Strongly disagree
+WRONG_Disagree
+WRONG_Neutral (In-between)
+WRONG_Strongly agree
+WRONG_Strongly disagree
+HOPEFUL_Disagree
+HOPEFUL_Neutral (In-between)
+HOPEFUL_Strongly agree
+HOPEFUL_Strongly disagree
+NOTMYWAY_Disagree
+NOTMYWAY_Neutral (In-between)
+NOTMYWAY_Strongly agree
+NOTMYWAY_Strongly disagree
+COUNTGD_Disagree
+COUNTGD_Neutral (In-between)
+COUNTGD_Strongly agree
+COUNTGD_Strongly disagree
+MOREGOOD_Disagree
+MOREGOOD_Neutral (In-between)
+MOREGOOD_Strongly agree
+MOREGOOD_Strongly disagree
+KNWANGRY_Disagree
+KNWANGRY_Neutral (In-between)
+KNWANGRY_Strongly agree
+KNWANGRY_Strongly disagree
+TELLFEEL_Disagree
+TELLFEEL_Neutral (In-between)
+TELLFEEL_Strongly agree
+TELLFEEL_Strongly disagree
+DISAPPNT_Disagree
+DISAPPNT_Neutral (In-between)
+DISAPPNT_Strongly agree
+DISAPPNT_Strongly disagree
+SCENEPUB_Disagree
+SCENEPUB_Neutral (In-between)
+SCENEPUB_Strongly agree
+SCENEPUB_Strongly disagree
+BOTHER_Disagree
+BOTHER_Neutral (In-between)
+BOTHER_Strongly agree
+BOTHER_Strongly disagree
+SUPPRESS_Disagree
+SUPPRESS_Neutral (In-between)
+SUPPRESS_Strongly agree
+SUPPRESS_Strongly disagree
+APPRVNEG_Disagree
+APPRVNEG_Neutral (In-between)
+APPRVNEG_Strongly agree
+APPRVNEG_Strongly disagree
+ORDERS_True
+BADLUCK_True
+TRUTH_True
+LIE_True
+HONEST_True
+UNFAIR_True
+NOCARE_True
+TRUSTNO_True
+FRNDSUSE_True
+NOHELP_True
+EXPERTS_True
+RESPECT_True
+BADSEX_True
+LIFEQUAL_2
+LIFEQUAL_3
+LIFEQUAL_4
+LIFEQUAL_6
+LIFEQUAL_7
+LIFEQUAL_8
+LIFEQUAL_9
+LIFEQUAL_Best
+LIFEQUAL_Halfway
+LIFEQUAL_Worst
+SATLIFE_2
+SATLIFE_3
+SATLIFE_4
+SATLIFE_6
+SATLIFE_7
+SATLIFE_8
+SATLIFE_9
+SATLIFE_Dissatisfied
+SATLIFE_Halfway
+SATLIFE_Satisfied
+GENHEL_Good
+GENHEL_Poor
+GENHEL_Very good
+HLTHC1Y_Much better now than 1 year ago
+HLTHC1Y_Much worse than 1 year ago
+HLTHC1Y_Somewhat better now than 1 year ago
+HLTHC1Y_Somewhat worse now than 1 year ago
+VIGACT_Yes, limited a little
+VIGACT_Yes, limited a lot
+MODACT_Yes, limited a little
+MODACT_Yes, limited a lot
+LIFTGROC_Yes, limited a little
+LIFTGROC_Yes, limited a lot
+STAIRS_Yes, limited a little
+STAIRS_Yes, limited a lot
+STAIR_Yes, limited a little
+STAIR_Yes, limited a lot
+BENDING_Yes, limited a little
+BENDING_Yes, limited a lot
+WALK1M_Yes, limited a little
+WALK1M_Yes, limited a lot
+WALKBLKS_Yes, limited a little
+WALKBLKS_Yes, limited a lot
+WALK1BLK_Yes, limited a little
+WALK1BLK_Yes, limited a lot
+BATHING_Yes, limited a little
+BATHING_Yes, limited a lot
+INTSOC_Not at all
+INTSOC_Quite a bit
+INTSOC_Slightly
+BODPAIN_Moderate
+BODPAIN_None
+BODPAIN_Severe
+BODPAIN_Very mild
+PAININT_Moderately
+PAININT_Not at all
+PAININT_Quite a bit
+LESSWRKP_Yes
+LESSACCP_Yes
+LESSKNDP_Yes
+WRKDIFFP_Yes
+LESSWRKE_Yes
+LESSACCE_Yes
+LESSCARE_Yes
+SICKEASY_Definitely true
+SICKEASY_Mostly false
+SICKEASY_Mostly true
+SICKEASY_Not sure
+HLTHYANY_Definitely true
+HLTHYANY_Mostly false
+HLTHYANY_Mostly true
+HLTHYANY_Not sure
+HLTHWORS_Definitely true
+HLTHWORS_Mostly false
+HLTHWORS_Mostly true
+HLTHWORS_Not sure
+HLTHEXCL_Definitely true
+HLTHEXCL_Mostly false
+HLTHEXCL_Mostly true
+HLTHEXCL_Not sure
+INTSOC2_All of the time
+INTSOC2_Most of the time
+INTSOC2_None of the time
+INTSOC2_Some of the time
+FULLPEP_A little bit of the time
+FULLPEP_All of the time
+FULLPEP_Most of the time
+FULLPEP_None of the time
+FULLPEP_Some of the time
+NERVOUS_A little bit of the time
+NERVOUS_All of the time
+NERVOUS_Most of the time
+NERVOUS_None of the time
+NERVOUS_Some of the time
+DWNDUMPS_A little bit of the time
+DWNDUMPS_All of the time
+DWNDUMPS_Most of the time
+DWNDUMPS_None of the time
+DWNDUMPS_Some of the time
+CALM_A little bit of the time
+CALM_All of the time
+CALM_Most of the time
+CALM_None of the time
+CALM_Some of the time
+ENERGY_A little bit of the time
+ENERGY_All of the time
+ENERGY_Most of the time
+ENERGY_None of the time
+ENERGY_Some of the time
+FELTBLUE_A little bit of the time
+FELTBLUE_All of the time
+FELTBLUE_Most of the time
+FELTBLUE_None of the time
+FELTBLUE_Some of the time
+WORNOUT_A little bit of the time
+WORNOUT_All of the time
+WORNOUT_Most of the time
+WORNOUT_None of the time
+WORNOUT_Some of the time
+HAPPY_A little bit of the time
+HAPPY_All of the time
+HAPPY_Most of the time
+HAPPY_None of the time
+HAPPY_Some of the time
+TIRED_A little bit of the time
+TIRED_All of the time
+TIRED_Most of the time
+TIRED_None of the time
+TIRED_Some of the time
+EAT_With some help (help cutting, etc.)
+EAT_Without help (can feed self completely)
+DRESS_With some help
+DRESS_Without help (can pick clothes, dress)
+INOUTBED_With some help (from a person or device)
+INOUTBED_Without any help or aids
+SHOWER_With some help (help in/out, tub attach)
+SHOWER_Without help
+BLOATING_Symptom was mild
+BLOATING_Symptom was moderate
+BLOATING_Symptom was severe
+CONSTIP_Symptom was mild
+CONSTIP_Symptom was moderate
+CONSTIP_Symptom was severe
+NIGHTSWT_Symptom was mild
+NIGHTSWT_Symptom was moderate
+NIGHTSWT_Symptom was severe
+ACHES_Symptom was mild
+ACHES_Symptom was moderate
+ACHES_Symptom was severe
+BRSTTEN_Symptom was mild
+BRSTTEN_Symptom was moderate
+BRSTTEN_Symptom was severe
+HOTFLASH_Symptom was mild
+HOTFLASH_Symptom was moderate
+HOTFLASH_Symptom was severe
+DIARRHEA_Symptom was mild
+DIARRHEA_Symptom was moderate
+DIARRHEA_Symptom was severe
+MOODSWNG_Symptom was mild
+MOODSWNG_Symptom was moderate
+MOODSWNG_Symptom was severe
+NAUSEA_Symptom was mild
+NAUSEA_Symptom was moderate
+NAUSEA_Symptom was severe
+DIZZY_Symptom was mild
+DIZZY_Symptom was moderate
+DIZZY_Symptom was severe
+TIRED2_Symptom was mild
+TIRED2_Symptom was moderate
+TIRED2_Symptom was severe
+FORGET_Symptom was mild
+FORGET_Symptom was moderate
+FORGET_Symptom was severe
+HUNGRY_Symptom was mild
+HUNGRY_Symptom was moderate
+HUNGRY_Symptom was severe
+HEARTRAC_Symptom was mild
+HEARTRAC_Symptom was moderate
+HEARTRAC_Symptom was severe
+TREMORS_Symptom was mild
+TREMORS_Symptom was moderate
+TREMORS_Symptom was severe
+HEARTBRN_Symptom was mild
+HEARTBRN_Symptom was moderate
+HEARTBRN_Symptom was severe
+RESTLESS_Symptom was mild
+RESTLESS_Symptom was moderate
+RESTLESS_Symptom was severe
+LOWBACKP_Symptom was mild
+LOWBACKP_Symptom was moderate
+LOWBACKP_Symptom was severe
+NECKPAIN_Symptom was mild
+NECKPAIN_Symptom was moderate
+NECKPAIN_Symptom was severe
+SKINDRY_Symptom was mild
+SKINDRY_Symptom was moderate
+SKINDRY_Symptom was severe
+HEADACHE_Symptom was mild
+HEADACHE_Symptom was moderate
+HEADACHE_Symptom was severe
+CLUMSY_Symptom was mild
+CLUMSY_Symptom was moderate
+CLUMSY_Symptom was severe
+TRBSEE_Symptom was mild
+TRBSEE_Symptom was moderate
+TRBSEE_Symptom was severe
+VAGITCH_Symptom was mild
+VAGITCH_Symptom was moderate
+VAGITCH_Symptom was severe
+CONCEN_Symptom was mild
+CONCEN_Symptom was moderate
+CONCEN_Symptom was severe
+JNTPAIN_Symptom was mild
+JNTPAIN_Symptom was moderate
+JNTPAIN_Symptom was severe
+NOHUNGER_Symptom was mild
+NOHUNGER_Symptom was moderate
+NOHUNGER_Symptom was severe
+HEARLOSS_Symptom was mild
+HEARLOSS_Symptom was moderate
+HEARLOSS_Symptom was severe
+SWELLHND_Symptom was mild
+SWELLHND_Symptom was moderate
+SWELLHND_Symptom was severe
+VAGDRY_Symptom was mild
+VAGDRY_Symptom was moderate
+VAGDRY_Symptom was severe
+UPSTOM_Symptom was mild
+UPSTOM_Symptom was moderate
+UPSTOM_Symptom was severe
+URINPAIN_Symptom was mild
+URINPAIN_Symptom was moderate
+URINPAIN_Symptom was severe
+COUGH_Symptom was mild
+COUGH_Symptom was moderate
+COUGH_Symptom was severe
+VAGDIS_Symptom was mild
+VAGDIS_Symptom was moderate
+VAGDIS_Symptom was severe
+SPOUSDIE_Yes, and it upset me: Moderately
+SPOUSDIE_Yes, and it upset me: Not too much
+SPOUSDIE_Yes, and it upset me: Very much
+FRIENDIE_Yes, and it upset me: Moderately
+FRIENDIE_Yes, and it upset me: Not too much
+FRIENDIE_Yes, and it upset me: Very much
+MONPROB_Yes, and it upset me: Moderately
+MONPROB_Yes, and it upset me: Not too much
+MONPROB_Yes, and it upset me: Very much
+DIVORCE_Yes, and it upset me: Moderately
+DIVORCE_Yes, and it upset me: Not too much
+DIVORCE_Yes, and it upset me: Very much
+FRNDIV_Yes, and it upset me: Moderately
+FRNDIV_Yes, and it upset me: Not too much
+FRNDIV_Yes, and it upset me: Very much
+CHILCON_Yes, and it upset me: Moderately
+CHILCON_Yes, and it upset me: Not too much
+CHILCON_Yes, and it upset me: Very much
+MAJACC_Yes, and it upset me: Moderately
+MAJACC_Yes, and it upset me: Not too much
+MAJACC_Yes, and it upset me: Very much
+FRNJOB_Yes, and it upset me: Moderately
+FRNJOB_Yes, and it upset me: Not too much
+FRNJOB_Yes, and it upset me: Very much
+PHYAB_Yes, and it upset me: Moderately
+PHYAB_Yes, and it upset me: Not too much
+PHYAB_Yes, and it upset me: Very much
+VERBAB_Yes, and it upset me: Moderately
+VERBAB_Yes, and it upset me: Not too much
+VERBAB_Yes, and it upset me: Very much
+PETDIE_Yes, and it upset me: Moderately
+PETDIE_Yes, and it upset me: Not too much
+PETDIE_Yes, and it upset me: Very much
+FELTDEP_Occasionally or a moderate amount of time (3-4 days)
+FELTDEP_Rarely or none of the time (less than 1 day)
+FELTDEP_Some or a little of the time (1-2 days)
+RESTSLP_Occasionally or a moderate amount of time (3-4 days)
+RESTSLP_Rarely or none of the time (less than 1 day)
+RESTSLP_Some or a little of the time (1-2 days)
+ENJLIF_Occasionally or a moderate amount of time (3-4 days)
+ENJLIF_Rarely or none of the time (less than 1 day)
+ENJLIF_Some or a little of the time (1-2 days)
+CRYSPELL_Occasionally or a moderate amount of time (3-4 days)
+CRYSPELL_Rarely or none of the time (less than 1 day)
+CRYSPELL_Some or a little of the time (1-2 days)
+FELTSAD_Occasionally or a moderate amount of time (3-4 days)
+FELTSAD_Rarely or none of the time (less than 1 day)
+FELTSAD_Some or a little of the time (1-2 days)
+PEOPDIS_Occasionally or a moderate amount of time (3-4 days)
+PEOPDIS_Rarely or none of the time (less than 1 day)
+PEOPDIS_Some or a little of the time (1-2 days)
+SAD2WK_Yes
+SAD2YRS_Yes
+MEDSLEEP_Yes, 1 or 2 times a week
+MEDSLEEP_Yes, 3 or 4 times a week
+MEDSLEEP_Yes, 5 or more times per week
+MEDSLEEP_Yes, less than once a week
+FALLSLP_Yes, 1 or 2 times a week
+FALLSLP_Yes, 3 or 4 times a week
+FALLSLP_Yes, 5 or more times per week
+FALLSLP_Yes, less than once a week
+NAP_Yes, 1 or 2 times a week
+NAP_Yes, 3 or 4 times a week
+NAP_Yes, 5 or more times per week
+NAP_Yes, less than once a week
+TRBSLEEP_Yes, 1 or 2 times a week
+TRBSLEEP_Yes, 3 or 4 times a week
+TRBSLEEP_Yes, 5 or more times per week
+TRBSLEEP_Yes, less than once a week
+WAKENGHT_Yes 1 or 2 times a week
+WAKENGHT_Yes, 3 or 4 times a week
+WAKENGHT_Yes, 5 or more times a week
+WAKENGHT_Yes, less than once a week
+UPEARLY_Yes, 1 or 2 times a week
+UPEARLY_Yes, 3 or 4 times a week
+UPEARLY_Yes, 5 or more times per week
+UPEARLY_Yes, less than once a week
+BACKSLP_Yes, 1 or 2 times a week
+BACKSLP_Yes, 3 or 4 times a week
+BACKSLP_Yes, 5 or more times per week
+BACKSLP_Yes, less than once a week
+SNORE_No, not in past 4 weeks
+SNORE_Yes 1 or 2 times a week
+SNORE_Yes, 3 or 4 times a week
+SNORE_Yes, 5 or more times a week
+SNORE_Yes, less than once a week
+QUALSLP_Restless
+QUALSLP_Sound or restful
+QUALSLP_Very restless
+QUALSLP_Very sound or restful
+HRSSLP_5 or less hours
+HRSSLP_6 hours
+HRSSLP_7 hours
+HRSSLP_8 hours
+HRSSLP_9 hours
+INCONT_Yes
+MARRIED_Yes
+SEXACTIV_No
+SEXACTIV_Yes
+SATSEX_Don't want to answer
+SATSEX_Somewhat satisfied
+SATSEX_Very satisfied
+SATSEX_Very unsatisfied
+SATFRQSX_Less often
+SATFRQSX_More often
+SATFRQSX_Satisfied with current frequency
+SEXWORRY_Don't want to answer
+SEXWORRY_Not at all worried
+SEXWORRY_Somewhat worried
+SEXWORRY_Very worried
+SEX_Prefer not to answer
+SEX_Sex with a man or with men
+SEX_Sex with a woman or with women
+SEX_Sex with both men and women
+ACTDLY_4.0
+ACTDLY_5.0
+ACTDLY_6.0
+ACTDLY_7.0
+ACTDLY_8.0
+ACTDLY_9.0
+ACTDLY_12.0
+CAREGIV1_Yes
+CAREGIV2_3-4 times a week
+CAREGIV2_5 or more times a week
+CAREGIV2_Less than once a week
+CAREGIV2_No
+EMOLIMIT_33.33333
+EMOLIMIT_66.66667
+EMOLIMIT_100.0
+LIVALOR_Yes
+PHYLIMIT_25.0
+PHYLIMIT_50.0
+PHYLIMIT_75.0
+PHYLIMIT_100.0
+F40VTYP_Non-Routine visit
+F40VTYP_Semi-Annual visit
+FAMILYDVTEVR_No
+FAMILYDVTEVR_Yes
+FAMILYPEEVR_No
+FAMILYPEEVR_Yes
+F41VTYP_Non-Routine visit
+F41VTYP_Semi-Annual visit
+SPANISH_Yes, Cuban
+SPANISH_Yes, Mexican, Mexican American, Chicano
+SPANISH_Yes, Puerto Rican
+SPANISH_Yes, other Spanish/Hispanic/Latina
+WHITE_Yes
+BLACK_Yes
+AMERINDIAN_Yes
+ASIAINDIAN_Yes
+CHINESE_Yes
+FILIPINO_Yes
+JAPANESE_Yes
+KOREAN_Yes
+OTHRASIANPLUS_Yes
+HAWAIIAN_Yes
+OTHRPACISLPLUS_Yes
+OTHERRACE_Yes
+RECENCY_Non user
+RECENCY_Past, 5 to <10 years
+RECENCY_Past, <5 yrs
+RECENCY_Past, >10 years
+OC_Yes
+DES_Yes
+DMPA_Yes
+TOTE_Yes
+TOTECAT_15+ Years
+TOTECAT_5 to <10 Years
+TOTECAT_<5 Years
+TOTECAT_None
+TOTESTAT_Never used
+TOTESTAT_Past user
+TOTP_Yes
+TOTPCAT_15+ Years
+TOTPCAT_5 to <10 Years
+TOTPCAT_<5 Years
+TOTPCAT_None
+TOTPSTAT_Never used
+TOTPSTAT_Past user
+TOTH_Yes
+TOTHCAT_15+ Years
+TOTHCAT_5 to < 10 Years
+TOTHCAT_< 5 Years
+TOTHCAT_None
+TOTHSTAT_Never used
+TOTHSTAT_Past user
+TEST_Yes
+TESTSTAT_Never used
+TESTSTAT_Past user
+ESTR_Yes
+ESTRSTAT_Never used
+ESTRSTAT_Past user
+F45MULTI_Yes
+F45MVMIN_Yes
+F45STRES_Yes
+F45OTHCM_Yes
+F45COMBP_Yes
+TKVITA_Yes
+TKVITE_Yes
+TKVITB1_Yes
+TKVITB12_Yes
+TKVITB2_Yes
+TKVITB6_Yes
+TKBETA_Yes
+TKBIOT_Yes
+TKVITC_Yes
+TKCALC_Yes
+TKCHROM_Yes
+TKCOPP_Yes
+TKVITD_Yes
+TKFOLIC_Yes
+TKIRON_Yes
+TKMAGN_Yes
+TKMANG_Yes
+TKMOLYB_Yes
+TKNIAC_Yes
+TKPANTO_Yes
+TKRETIN_Yes
+TKSELEN_Yes
+TKZINC_Yes
+SYSTOL_<=120
+SYSTOL_>140
+DIASTOL_>=90
+BMIC_Obesity I (30.0 - 34.9)
+BMIC_Obesity II (35.0 - 39.9)
+BMIC_Overweight (25.0 - 29.9)
+BMIC_Underweight (< 18.5)
+SAMEDRAW_Yes

@@ -32,7 +32,7 @@
         {    
         "px_cols": ["twin", "b.head", "preterm", "momage", "bw", "b.marr", "nnhealth", "birth.o", "momhisp", "sex"],
         "prop_fn":    "sigmoid",
-        "prop_args":  {"beta": [1.25, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 2.5]},
+        "prop_args":  {"beta": [1, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 2]},
         "tte_params": {"model": "coxph",
                        "hazard": "weibull",
                        "cox_args": {
