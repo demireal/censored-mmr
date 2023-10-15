@@ -28,7 +28,8 @@ class SyntheticDataModule:
                                 'C0': {'beta': [0,0], 'lambda': 1, 'p': 1},
                                 'C1': {'beta': [0,0], 'lambda': 1, 'p': 1},},
                     },
-                    global_threshold=None
+                    global_threshold=None,
+                    seed=None,
                 ):
 
         self.d = d  # covariate dimension (integer)
@@ -42,6 +43,7 @@ class SyntheticDataModule:
                                     # (for Cox model, keep first term of beta 0 always to not run into errors later with libraries)
                                     # (same effect can be achieved via lambda&p anyways)
         self.global_thresh = global_threshold # threshold for global censoring ( set censoring value to this if Y > thresh)
+        self.seed = seed
 
         self.df_save_dir = f'./data/S{self.S}/csv'  # directory to save the DataFrames
         self.fig_save_dir = f'./data/S{self.S}/figures'  # directory to save the figures
@@ -123,7 +125,9 @@ class SyntheticDataModule:
         return
     
 
-    def _generate_data(self):       
+    def _generate_data(self):    
+        np.random.seed(self.seed)   
+        
         df = pd.DataFrame(index=np.arange(self.n))
         df['S'] = self.S
         X = sm.add_constant(self._sample_x())  # add a column of 1's for the bias terms in the linear models

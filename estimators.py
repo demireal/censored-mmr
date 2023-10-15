@@ -16,7 +16,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression, LogisticR
 from sklearn.preprocessing import StandardScaler
 
 
-def prop_score_est(df, target, feature, model_name='sklogistic'):
+def prop_score_est(df, target, feature, model_name='logistic'):
     '''
     Train a propensity score model, e.g., P(S=1 | X) or P(A=1 | X, S=0), and return its predictions.
 
@@ -53,7 +53,6 @@ def prop_score_est(df, target, feature, model_name='sklogistic'):
         
 
     elif model_name == 'sklogistic':
-        print('Log reg with CV')
         logreg = LogisticRegressionCV(cv=5, random_state=0, penalty='elasticnet', solver='saga', l1_ratios=[0.5])
         logreg.fit(X, y)
 
@@ -66,7 +65,7 @@ def prop_score_est(df, target, feature, model_name='sklogistic'):
         raise NotImplementedError(f'{model_name} is not implemented for propensity score estimation')
         
         
-def mu_est_baseline(df, target, feature, model_name='linear'):
+def mu_est_baseline(df, target, feature, model_name='XGboost'):
     '''
     Train a regression model, e.g., E[Y|X,S=0,A=1], and return its predictions.
 

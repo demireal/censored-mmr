@@ -47,6 +47,9 @@ for cov_dim in args.CD:
         m_cols = ['m = ' + str(m) for m in args.M]
         mmr_results_df = pd.DataFrame(columns=['Test'] + m_cols, index=range(len(jD['test_signals'])))
 
+        np.random.seed(42)
+        seeds = np.random.randint(1e6, size=jD['num_exp'])
+
         for mind, m in enumerate(args.M):
             print(f'STARTING >>> CD: {cov_dim}, UC: {unmeas_conf}, m: {m}')
             start_time = time()
@@ -54,8 +57,8 @@ for cov_dim in args.CD:
 
             max_jobs = 40
 
-            local_mmr_results = Parallel(n_jobs=max_jobs)(delayed(mmr_run)(cov_dim, os_size, laplacian_kernel, jD)
-                                                                for nind in range(jD['num_exp']))
+            local_mmr_results = Parallel(n_jobs=max_jobs)(delayed(mmr_run)(cov_dim, os_size, laplacian_kernel, jD, seed)
+                                                                for seed in seeds)
 
             for nind in range(jD['num_exp']):
                 for kind in range(len(jD['test_signals'])):

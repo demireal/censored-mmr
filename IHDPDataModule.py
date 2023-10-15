@@ -37,7 +37,8 @@ class IHDPDataModule:
                                 'C0': {'beta': [0,0], 'lambda': 1, 'p': 1},
                                 'C1': {'beta': [0,0], 'lambda': 1, 'p': 1},},
                     },
-                global_threshold=None
+                global_threshold=None,
+                seed=None,
                 ):
 
         self.d = d  # covariate dimension (integer)
@@ -52,6 +53,7 @@ class IHDPDataModule:
                                     # (for Cox model, keep first term of beta 0 always to not run into errors later with libraries)
                                     # (same effect can be achieved via lambda&p anyways)
         self.global_thresh = global_threshold # threshold for global censoring ( set censoring value to this if Y > thresh)
+        self.seed = seed
 
         self.df_save_dir = os.path.join(DATA_DIR,f'ihdp/S{self.S}/csv')  # directory to save the DataFrames
         self.fig_save_dir = os.path.join(DATA_DIR,f'ihdp/S{self.S}/figures')  # directory to save the figures
@@ -136,6 +138,7 @@ class IHDPDataModule:
     
 
     def _generate_data(self):
+        np.random.seed(self.seed)
 
         df = pd.DataFrame(index=np.arange(self.n))
         df['S'] = self.S

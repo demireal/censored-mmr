@@ -368,7 +368,7 @@ def dr_est(df, S, baseline):
         df.loc[i, f'S{S}_{baseline}_dr_est_CATE'] = dr
         
 
-def generate_data(d, os_size, jD):
+def generate_data(d, os_size, jD, seed):
 
     if "global_threshold" in jD.keys():
         global_threshold = jD['global_threshold']
@@ -377,11 +377,11 @@ def generate_data(d, os_size, jD):
 
     #print(f'Using Global Censoring with threshold : {global_threshold}')
     if jD['data_name'] == "synthetic":
-        RCTData = SyntheticDataModule(jD['save_df'], d, jD['rct_size'], 0, jD['RCT']['px_dist'], jD['RCT']['px_args'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'], global_threshold = global_threshold)
-        OSData = SyntheticDataModule(jD['save_df'], d, os_size, 1, jD['OS']['px_dist'], jD['OS']['px_args'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'], global_threshold = global_threshold)
+        RCTData = SyntheticDataModule(jD['save_df'], d, jD['rct_size'], 0, jD['RCT']['px_dist'], jD['RCT']['px_args'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'], global_threshold=global_threshold, seed=seed)
+        OSData = SyntheticDataModule(jD['save_df'], d, os_size, 1, jD['OS']['px_dist'], jD['OS']['px_args'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'], global_threshold=global_threshold, seed=seed+1)
     elif jD['data_name'] == "ihdp":
-        RCTData = IHDPDataModule(jD['save_df'], d, jD['rct_size'], 0,  jD['RCT']['px_cols'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'], global_threshold = global_threshold)
-        OSData = IHDPDataModule(jD['save_df'], d, os_size, 1,  jD['OS']['px_cols'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'], global_threshold = global_threshold)
+        RCTData = IHDPDataModule(jD['save_df'], d, jD['rct_size'], 0,  jD['RCT']['px_cols'], jD['RCT']['prop_fn'], jD['RCT']['prop_args'], jD['RCT']['tte_params'], global_threshold=global_threshold, seed=seed)
+        OSData = IHDPDataModule(jD['save_df'], d, os_size, 1,  jD['OS']['px_cols'], jD['OS']['prop_fn'], jD['OS']['prop_args'], jD['OS']['tte_params'], global_threshold=global_threshold, seed=seed+1)
     elif jD['data_name'] == "whi":
         RCTData = WHIDataModule(S=0)
         OSData = WHIDataModule(S=1)
@@ -400,22 +400,16 @@ def generate_data(d, os_size, jD):
 def est_nuisance(df_combined, df_comb_drop, jD):
     
     # Estimate the nuisance parameters for the combined dataframe
-    print('Estimating P(S=1|X)...')
     df_combined['P(S=1|X)'] = prop_score_est(df_combined.copy(), 'S', jD['cov_list'])
-    print('Done!\n')
     mu_regressor = {} 
 
     for sind in range(2):
-        print(f'Estimating P(A=1|X,S={sind})...')
         df_combined.loc[df_combined['S']==sind, 'P(A=1|X,S)'] =\
             prop_score_est(df_combined.query(f'S=={sind}').copy(), 'A', jD['cov_list'])
-        print('Done!\n')
         
         for aind in range(2):
-            print(f'Estimating mu(X,S={sind},A={aind})...')
             mu_regressor[f'S{sind}_A{aind}'] =\
             mu_est_baseline(df_combined.query(f'S=={sind} & A=={aind}').copy(), 'T', jD['cov_list'])
-            print('Done!\n')
 
             # df_delta = df_combined.query(f'S=={sind} & A=={aind}')
             # df_combined.loc[(df_combined["S"]==sind) & (df_combined["A"]==aind),f'P(Delta=1|X,S,A)'] = prop_score_est(df_delta,'Delta',jD["cov_list"])
@@ -425,19 +419,13 @@ def est_nuisance(df_combined, df_comb_drop, jD):
         df_combined.loc[df_combined.S==sind, 'mu(Y|X,S,A=1)'] =\
             mu_regressor[f'S{sind}_A1'].predict(df_combined.loc[df_combined.S==sind, jD['cov_list']])
     
-    print('Estimating the survival functions')
     Gb_C, Fb_Y = est_surv(df_combined, 'coxph', jD)
-    print('Done!\n')
     df_combined['Gb(T|X,S,A)'] = df_combined.apply(lambda r:\
      eval_surv_(Gb_C[f"t_S{int(r['S'])}_A{int(r['A'])}"], Gb_C[f"St_S{int(r['S'])}_A{int(r['A'])}"], r['T']), axis=1)
     
     if any("IPCW" in key for key in jD['test_signals'].keys()):
         ipcw_est(df_combined, S=0)
         ipcw_est(df_combined, S=1)
-
-    # if any("IPCW_GC" in key for key in jD['test_signals'].keys()):
-    #     ipcw_est_gc(df_combined, S = 0)
-    #     ipcw_est_gc(df_combined, S = 1)
         
     if any("IPW-Impute" in key for key in jD['test_signals'].keys()):
         ipw_est(df_combined, S=0, baseline='impute')  # censored observations are IMPUTED
@@ -492,7 +480,8 @@ def est_nuisance(df_combined, df_comb_drop, jD):
     return Fb_Y, Gb_C
 
 
-def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE'):
+def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE', signal1='S1_ipcw_est_CATE', seed=None):
+    
     n = len(df)
     Kxx = kernel(df[cov_list])
     np.fill_diagonal(Kxx, 0)
@@ -503,6 +492,7 @@ def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE',
 
     # obtain a sample from the null distribution n * M^2_{n(k)}
     h0_sample = np.zeros(B)
+    np.random.seed(seed)
     for k in range(B):
         wpsi = psi * (np.random.multinomial(n, [1 / n] * n) - 1) 
         wprod = wpsi @ Kxx @ wpsi / n
@@ -513,9 +503,9 @@ def mmr_test(df, cov_list, B=100, kernel=rbf_kernel, signal0='S0_ipcw_est_CATE',
     return int(pval < 0.05), pval
 
 
-def mmr_run(d, os_size, kernel, jD):
+def mmr_run(d, os_size, kernel, jD, seed):
     
-    df_combined, df_comb_drop, _, _ = generate_data(d, os_size, jD)
+    df_combined, df_comb_drop, _, _ = generate_data(d, os_size, jD, seed)
     _, _ = est_nuisance(df_combined, df_comb_drop, jD)
     
     mmr_stats = np.zeros((len(jD['test_signals']), 2))  # store results and p-val for each mmr test
@@ -537,6 +527,6 @@ def mmr_run(d, os_size, kernel, jD):
                     (0.05 < df_mmr['P(A=1|X,S)']) & (df_mmr['P(A=1|X,S)'] < 0.95)].copy().reset_index(drop=True)
             
         signal0, signal1 = jD['test_signals'][key][0], jD['test_signals'][key][1]
-        mmr_stats[kind, 0], mmr_stats[kind, 1] = mmr_test(df_mmr, jD['cov_list'], jD['B'], kernel, signal0, signal1)
+        mmr_stats[kind, 0], mmr_stats[kind, 1] = mmr_test(df_mmr, jD['cov_list'], jD['B'], kernel, signal0, signal1, seed+2)
         
     return mmr_stats
