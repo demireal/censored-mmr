@@ -12,7 +12,8 @@ from sklearn.metrics.pairwise import rbf_kernel, laplacian_kernel
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression, LogisticRegressionCV
+from sklearn.preprocessing import StandardScaler
 
 
 def prop_score_est(df, target, feature, model_name='logistic'):
@@ -49,6 +50,13 @@ def prop_score_est(df, target, feature, model_name='logistic'):
                     alpha = alpha * 10
 
         return result.predict(X)
+        
+
+    elif model_name == 'sklogistic':
+        logreg = LogisticRegressionCV(cv=5, random_state=0, penalty='elasticnet', solver='saga', l1_ratios=[0.5])
+        logreg.fit(X, y)
+
+        return logreg.predict_proba(X)
 
     elif model_name == 'mean':
         return y.mean() * np.ones(len(y))
@@ -70,7 +78,7 @@ def mu_est_baseline(df, target, feature, model_name='XGboost'):
     @return:
         predictions
     '''
-    
+
     X = df[feature]  # Features
     y = df[target]  # Target variable
     
@@ -196,6 +204,70 @@ def est_surv(df, tte_model, jD):
                     Fb_Y[f'St_S{s}_A{a}_true'], Fb_Y[f'beta_S{s}_A{a}_true'] =\
                     get_oracle_surv(Fb_Y[f't_S{s}_A{a}'], jD, s, f'Y{a}')
                     
+                else:
+                    raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
+                    
+    return Gb_C, Fb_Y
+
+
+def coxph_base_surv_whi(df, cov_list, flip=False):
+
+    crop_df = df[cov_list + ['T', 'Delta']].copy()
+    if flip:  # to fit the model for the censoring variable
+        crop_df['Delta'] = 1 - crop_df['Delta']
+
+    res_not_complete = True
+    penalizer = 0.1
+    while res_not_complete:
+        try:
+            cph = CoxPHFitter(penalizer=penalizer)
+            cph.fit(crop_df, duration_col='T', event_col='Delta')
+            res_not_complete = False
+        except:
+            penalizer = penalizer * 2
+            print(f"Current penalizer:{penalizer}")
+
+    
+    est_base_surv = cph.baseline_survival_
+    t_event = np.array(est_base_surv.index)
+    
+    cph_params = list(cph.params_)
+    cph_params.insert(0,0)
+
+    return t_event, np.array(est_base_surv).reshape(-1), np.array(cph_params)  
+
+
+def est_surv_whi(df, tte_model, cov_list, downsample=10):
+
+    Fb_Y = {}  # dictionary for TimeToEvent (Y) baseline survival estimate  
+    Gb_C = {}  # dictionary for CensoringTime (C) baseline survival estimate 
+        
+    for s in range(2):
+        for a in range(2):
+            if len(df.query(f'S=={s} & A=={a} & Delta==0')) == 0:  # deal with "lifelines" lib errors 
+                Gb_C[f't_S{s}_A{a}'], Gb_C[f'St_S{s}_A{a}'], Gb_C[f'beta_S{s}_A{a}'] = [-1], [1], np.zeros(len(cov_list))    
+                
+            else:
+                if tte_model == 'coxph':
+                    Gb_C[f't_S{s}_A{a}'], Gb_C[f'St_S{s}_A{a}'], Gb_C[f'beta_S{s}_A{a}'] = \
+                    coxph_base_surv_whi(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=True) # fit for C  
+                    
+                    Gb_C[f't_S{s}_A{a}'] = Gb_C[f't_S{s}_A{a}'][::downsample]
+                    Gb_C[f'St_S{s}_A{a}'] = Gb_C[f'St_S{s}_A{a}'][::downsample]
+                else:
+                    raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
+                    
+            # Estimate the survival function for the time-to-event variable Y
+            if len(df.query(f'S=={s} & A=={a} & Delta==1')) == 0:
+                Fb_Y[f't_S{s}_A{a}'], Fb_Y[f'St_S{s}_A{a}'], Fb_Y[f'beta_S{s}_A{a}'] = [-1], [1], np.zeros(len(cov_list))
+                
+            else:
+                if tte_model == 'coxph':
+                    Fb_Y[f't_S{s}_A{a}'], Fb_Y[f'St_S{s}_A{a}'], Fb_Y[f'beta_S{s}_A{a}'] = \
+                    coxph_base_surv_whi(df.query(f'S=={s} & A=={a}').copy(), cov_list[1:], flip=False) # fit for Y
+                    
+                    Fb_Y[f't_S{s}_A{a}'] = Fb_Y[f't_S{s}_A{a}'][::downsample]
+                    Fb_Y[f'St_S{s}_A{a}'] = Fb_Y[f'St_S{s}_A{a}'][::downsample]
                 else:
                     raise NotImplementedError(f'Time-to-event model <{tte_model}> is not implemented.')
                     
