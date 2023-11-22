@@ -22,7 +22,7 @@ For instance, to run experiments on the IHDP dataset with same potential outcome
 
 
 ### WHI Experiments
-
+whi
 
 
 
